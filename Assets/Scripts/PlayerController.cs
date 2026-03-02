@@ -57,6 +57,8 @@ public class PlayerController : MonoBehaviour
 
         if (spriteRenderer == null)
             Debug.LogError("SpriteRenderer not found on Player! Please add one.");
+
+        lastPosition = rb.position;
     }
 
     private void Update()
@@ -70,14 +72,14 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        HandleFootsteps();
         ReadInput();
         UpdateAnimation();
     }
 
     private void FixedUpdate()
     {
-        if (!isDashing) Move(); // Normal movement only when not dashing
+        if (!isDashing) Move(); // Move first
+        HandleFootsteps();       // Footsteps after movement
     }
 
     // 1️ Read input every frame (responsive)
@@ -192,23 +194,18 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        if (!isOnGrass)
-        {
-            footstepTimer = 0f;
-            return;
-        }
-
         float moved = Vector2.Distance(rb.position, lastPosition);
         lastPosition = rb.position;
 
         // Only play when moving
-        if (movementInput != Vector2.zero)
+        if (moved > 0.01f)
         {
             footstepTimer += Time.deltaTime;
 
             if (footstepTimer >= footstepInterval)
             {
-                PlayFootstep();
+                if (isOnGrass) PlayFootstepGrass();
+
                 footstepTimer = 0f;
             }
         }
@@ -218,7 +215,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void PlayFootstep()
+    private void PlayFootstepGrass()
     {
         if (footstepClips == null || footstepClips.Length == 0) return;
 
