@@ -7,7 +7,7 @@
 ![Unity](https://img.shields.io/badge/Unity-2022+-black?logo=unity&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?logo=c-sharp&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-In%20Development-orange)
-![Progress](https://img.shields.io/badge/Overall%20Progress-30%25-blue)
+![Progress](https://img.shields.io/badge/Overall%20Progress-45%25-blue)
 
 > **Goal:** Real-time physics-driven top-down action RPG with fluid combat, dodge mechanics, and responsive input.
 
@@ -29,7 +29,7 @@
 ## 📊 Overall Progress
 
 ```
-Total Completion  ████████░░░░░░░░░░░░  30%
+Total Completion  █████████░░░░░░░░░░░  45%
 ```
 
 ---
@@ -152,14 +152,15 @@ MainScene
 
 ### 🏃 Phase 7 — Real-Time Movement
 ```
-█████████████████████░   90%  🔄 IN PROGRESS
+█████████████████████░   95%  🔄 IN PROGRESS
 ```
 - [x] `PlayerController.cs` implemented
 - [x] `Input.GetAxisRaw` for instant response
 - [x] `rb.MovePosition` physics-based movement (no coroutines!)
 - [x] Diagonal normalization (no speed boost)
-- [x] Animation sync (`isMoving`, `moveX`, `moveY` params)
-- [ ] Dash / dodge system (Phase 9)
+- [x] Animation sync via blend trees (`isMoving`, `moveX`, `moveY` params)
+- [x] Sprite flip (`flipX`) for left ↔ right mirroring
+- [x] Dash / dodge system (Left Shift or Right-Click, with VFX + SFX)
 - [ ] Movement cancellation during hit-stun
 
 <details>
@@ -171,6 +172,24 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Movement")]
     public float moveSpeed = 5f;
+    public SpriteRenderer spriteRenderer;
+
+    [Header("Dash")]
+    public float dashSpeed = 12f;
+    public float dashDuration = 0.15f;
+    public float dashCooldown = 0.5f;
+    private bool isDashing = false;
+    private float lastDashTime = -Mathf.Infinity;
+    private Vector2 lastMoveDir = Vector2.down;
+
+    [Header("Dash Effects")]
+    public GameObject dashEffectPrefab;
+
+    [Header("Audio")]
+    public AudioClip dashSFX;
+    public AudioClip[] footstepClips;
+    public float footstepInterval = 0.8f;
+    private AudioSource audioSource;
 
     private Vector2 movementInput;
     private Rigidbody2D rb;
@@ -180,16 +199,31 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        audioSource = GetComponent<AudioSource>();
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
-    private void Update()   { ReadInput(); UpdateAnimation(); }
-    private void FixedUpdate() { Move(); }
+    private void Update()
+    {
+        if (!isDashing && Time.time >= lastDashTime + dashCooldown)
+            if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetMouseButtonDown(1))
+                StartCoroutine(Dash());
+        ReadInput();
+        UpdateAnimation();
+    }
+
+    private void FixedUpdate() { if (!isDashing) Move(); HandleFootsteps(); }
 
     private void ReadInput()
     {
+        if (isDashing) return;
         movementInput.x = Input.GetAxisRaw("Horizontal");
         movementInput.y = Input.GetAxisRaw("Vertical");
-        movementInput = movementInput.normalized; // no diagonal speed boost
+        movementInput = movementInput.normalized;
+        if (movementInput != Vector2.zero) lastMoveDir = movementInput;
+        if (movementInput.x > 0) spriteRenderer.flipX = true;
+        else if (movementInput.x < 0) spriteRenderer.flipX = false;
     }
 
     private void Move()
@@ -203,10 +237,81 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("isMoving", isMoving);
         if (isMoving)
         {
-            animator.SetFloat("moveX", movementInput.x);
+            animator.SetFloat("moveX", Mathf.Abs(movementInput.x));
             animator.SetFloat("moveY", movementInput.y);
         }
     }
+
+    private IEnumerator Dash()
+    {
+        isDashing = true;
+        lastDashTime = Time.time;
+        Vector2 dir = movementInput != Vector2.zero ? movementInput : lastMoveDir;
+        if (dashEffectPrefab != null)
+        {
+            GameObject vfx = Instantiate(dashEffectPrefab, transform.position,
+                                         Quaternion.identity, transform);
+            vfx.transform.localPosition = -(Vector3)dir * 2f;
+            vfx.transform.rotation = Quaternion.Euler(0, 0,
+                Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
+            Animator vfxAnim = vfx.GetComponent<Animator>();
+            if (vfxAnim != null)
+            {
+                float len = vfxAnim.runtimeAnimatorController.animationClips[0].length;
+                vfxAnim.Play(vfxAnim.runtimeAnimatorController.animationClips[0].name, 0, 0f);
+                Destroy(vfx, len);
+            }
+            else Destroy(vfx, 1f);
+        }
+        if (dashSFX != null && audioSource != null) audioSource.PlayOneShot(dashSFX);
+        float start = Time.time;
+        while (Time.time < start + dashDuration)
+        {
+            rb.MovePosition(rb.position + dir * dashSpeed * Time.fixedDeltaTime);
+            yield return new WaitForFixedUpdate();
+        }
+        isDashing = false;
+    }
+
+    // Footsteps play only when moving on grass (OnTriggerStay2D sets isOnGrass)
+    private bool isOnGrass;
+    private Vector2 lastPosition;
+    private float footstepTimer;
+    private int lastFootstepIndex = -1;
+
+    private void HandleFootsteps()
+    {
+        if (isDashing) { footstepTimer = 0f; return; }
+        float moved = Vector2.Distance(rb.position, lastPosition);
+        lastPosition = rb.position;
+        if (moved > 0.01f)
+        {
+            footstepTimer += Time.deltaTime;
+            if (footstepTimer >= footstepInterval)
+            {
+                if (isOnGrass) PlayFootstepGrass();
+                footstepTimer = 0f;
+            }
+        }
+        else footstepTimer = 0f;
+    }
+
+    private void PlayFootstepGrass()
+    {
+        if (footstepClips == null || footstepClips.Length == 0) return;
+        int index;
+        do { index = Random.Range(0, footstepClips.Length); }
+        while (index == lastFootstepIndex && footstepClips.Length > 1);
+        lastFootstepIndex = index;
+        audioSource.pitch = Random.Range(0.95f, 1.05f);
+        audioSource.PlayOneShot(footstepClips[index], 0.6f);
+        audioSource.pitch = 1f;
+    }
+
+    private void OnTriggerStay2D(Collider2D other)
+    { if (other.CompareTag("Grass")) isOnGrass = true; }
+    private void OnTriggerExit2D(Collider2D other)
+    { if (other.CompareTag("Grass")) isOnGrass = false; }
 }
 ```
 </details>
@@ -217,7 +322,7 @@ public class PlayerController : MonoBehaviour
 
 ### 🕹️ Movement
 ```
-█████████████████████░   90%  🔄 IN PROGRESS
+█████████████████████░   95%  🔄 IN PROGRESS
 ```
 | Feature | Status |
 |---|:---:|
@@ -225,21 +330,25 @@ public class PlayerController : MonoBehaviour
 | Physics-based (`Rigidbody2D`) | ✅ |
 | Diagonal normalization | ✅ |
 | Wall collision | ✅ |
-| Dash / Dodge roll | ❌ |
+| Sprite flip for left ↔ right mirroring | ✅ |
+| Dash / Dodge roll (Left Shift or Right-Click) | ✅ |
+| Dash VFX trailing effect | ✅ |
 | Knockback on hit | ❌ |
 
 ---
 
 ### 🎬 Animation
 ```
-████████████████░░░░░░   70%  🔄 IN PROGRESS
+█████████████████░░░░░   75%  🔄 IN PROGRESS
 ```
 | Animation | Status |
 |---|:---:|
 | Idle Down / Left / Up | ✅ |
 | Walk Down / Left / Up | ✅ |
 | Attack Down / Left / Up | ✅ |
-| Dodge / Roll animation | ❌ |
+| Blend-tree directional blending | ✅ |
+| Dash VFX effect animation | ✅ |
+| Dodge / Roll player animation | ❌ |
 | Hit / Hurt animation | ❌ |
 | Death animation | ❌ |
 
@@ -258,7 +367,7 @@ public class PlayerController : MonoBehaviour
 | Enemy HP system | ❌ |
 | Hitstop (freeze frames) | ❌ |
 | Knockback on enemy | ❌ |
-| Dodge / i-frames | ❌ |
+| Dodge / I-frames | ⏳ (dash done, I-frames pending) |
 | Combo system | ❌ |
 
 ---
@@ -278,13 +387,13 @@ public class PlayerController : MonoBehaviour
 
 ### 🔊 Sound Effects
 ```
-░░░░░░░░░░░░░░░░░░░░░░    0%  ❌ NOT STARTED
+███████░░░░░░░░░░░░░░░   33%  🔄 IN PROGRESS
 ```
 | Feature | Status |
 |---|:---:|
-| Player footstep SFX | ❌ |
+| Player footstep SFX (grass) | ✅ |
+| Dodge / Dash SFX | ✅ |
 | Attack SFX | ❌ |
-| Dodge SFX | ❌ |
 | Hit / Impact SFX | ❌ |
 | Background Music | ❌ |
 | UI interaction SFX | ❌ |
@@ -296,10 +405,10 @@ public class PlayerController : MonoBehaviour
 | Phase | Feature | Priority |
 |---|---|:---:|
 | **Phase 8** | Combat System (hitboxes, damage, HP) | 🔴 High |
-| **Phase 9** | Dodge / Dash with i-frames | 🔴 High |
+| **Phase 9** | ~~Dodge / Dash~~ ✅ → I-frames during dash | 🔴 High |
 | **Phase 10** | Enemy AI (patrol, chase, attack) | 🟠 Medium |
 | **Phase 11** | HUD & UI (HP bar, menus) | 🟠 Medium |
-| **Phase 12** | Sound Effects & Background Music | 🟡 Low |
+| **Phase 12** | ~~Sound Effects~~ ⏳ → Attack / Hit SFX + BGM | 🟡 Low |
 | **Phase 13** | Polish (hitstop, screenshake, VFX) | 🟡 Low |
 
 ---
@@ -320,8 +429,17 @@ Assets/
 │       ├── Player_AttackDown.anim           ✅
 │       ├── Player_AttackLeft.anim           ✅
 │       └── Player_AttackUp.anim             ✅
+├── Effects/
+│   └── Dash/
+│       ├── DashEffect.controller            ✅
+│       ├── Dash.anim                        ✅
+│       └── FX033_01..10.png                 ✅ (10 VFX frames)
 ├── Scripts/
 │   └── PlayerController.cs                 ✅
+├── Sounds/
+│   └── SFX/
+│       ├── freesound_community-rustling-grass-*.mp3  ✅ (×3 footstep clips)
+│       └── zapsplat_cartoon_fast_whoosh_*.mp3        ✅ (dash SFX)
 ├── Sprites/
 │   ├── SpriteSheet.png
 │   ├── TilesetFloor.png
@@ -330,6 +448,7 @@ Assets/
 ├── Tiles/
 │   ├── TilesetFloor_0..457.asset           ✅
 │   └── TilesetNature_0..381.asset          ✅
+├── DashEffect.prefab                       ✅
 └── MainScene.unity                         ✅
 ```
 
@@ -344,6 +463,8 @@ Assets/
 | *(Skull Knight sprite)* | *(add source)* | *(add license)* | Player character |
 | *(Floor tileset)* | *(add source)* | *(add license)* | Environment floor tiles |
 | *(Nature tileset)* | *(add source)* | *(add license)* | Environment props / nature tiles |
+| Rustling Grass SFX (×3) | freesound_community via Freesound.org | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) | Player footstep sounds on grass |
+| Fast Whoosh / Swipe SFX | ZapSplat (zapsplat.com) | ZapSplat Standard License | Dash / dodge sound effect |
 | *(add asset)* | *(add source)* | *(add license)* | *(add usage)* |
 
 ---
