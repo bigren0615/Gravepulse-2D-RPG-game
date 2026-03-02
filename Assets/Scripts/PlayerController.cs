@@ -61,7 +61,7 @@ public class PlayerController : MonoBehaviour
 
         if (isMoving)
         {
-            animator.SetFloat("moveX", movementInput.x);
+            animator.SetFloat("moveX", Mathf.Abs(movementInput.x));
             animator.SetFloat("moveY", movementInput.y);
         }
     }

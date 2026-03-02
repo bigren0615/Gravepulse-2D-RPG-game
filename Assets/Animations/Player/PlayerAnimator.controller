@@ -46,7 +46,7 @@ BlendTree:
   m_MaxThreshold: 1
   m_UseAutomaticThresholds: 1
   m_NormalizedBlendValues: 0
-  m_BlendType: 1
+  m_BlendType: 3
 --- !u!206 &-5322914604401173683
 BlendTree:
   m_ObjectHideFlags: 1
@@ -93,7 +93,7 @@ BlendTree:
   m_MaxThreshold: 1
   m_UseAutomaticThresholds: 1
   m_NormalizedBlendValues: 0
-  m_BlendType: 1
+  m_BlendType: 3
 --- !u!1107 &-2833621360064557922
 AnimatorStateMachine:
   serializedVersion: 6
