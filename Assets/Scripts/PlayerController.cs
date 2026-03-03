@@ -104,14 +104,18 @@ public class PlayerController : MonoBehaviour
         // Normalize so diagonal is not faster
         movementInput = movementInput.normalized;
 
+        // Check if we're currently in the Attack state
+        bool isInAttackState = animator.GetCurrentAnimatorStateInfo(0).IsName("Attack");
+
         // Update lastMoveDir only when input is not zero
-        if (!facingLocked && movementInput != Vector2.zero)
+        if (!facingLocked && !isInAttackState && movementInput != Vector2.zero)
         {
             lastMoveDir = movementInput;
         }
 
         // Base sprite faces LEFT; flipX when moving right
-        if (!facingLocked)
+        // Don't flip while in attack state OR while facing is locked
+        if (!facingLocked && !isInAttackState)
         {
             if (movementInput.x > 0)
                 spriteRenderer.flipX = true;
@@ -135,7 +139,11 @@ public class PlayerController : MonoBehaviour
 
         animator.SetBool("isMoving", isMoving);
 
-        if (facingLocked)
+        // Check if we're currently in the Attack state (any layer, but typically layer 0)
+        bool isInAttackState = animator.GetCurrentAnimatorStateInfo(0).IsName("Attack");
+
+        // Keep using attackDir if we're locked OR still in attack state
+        if (facingLocked || isInAttackState)
         {
             animator.SetFloat("moveX", Mathf.Abs(attackDir.x));
             animator.SetFloat("moveY", attackDir.y);
@@ -219,6 +227,12 @@ public class PlayerController : MonoBehaviour
 
         // Store FULL attack direction (up/down/left/right)
         attackDir = lastMoveDir;
+
+        // Lock sprite flip to attack direction
+        if (attackDir.x > 0)
+            spriteRenderer.flipX = true;
+        else if (attackDir.x < 0)
+            spriteRenderer.flipX = false;
     }
 
     public void AttackEnd()
