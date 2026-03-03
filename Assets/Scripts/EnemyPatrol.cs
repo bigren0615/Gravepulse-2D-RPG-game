@@ -27,6 +27,10 @@ public class EnemyPatrol : MonoBehaviour
     [Header("References")]
     public GameObject player; // Assign manually or leave blank to auto-find by tag
 
+    [Header("Health")]
+    public float maxHealth = 100f;
+    private float currentHealth;
+
     private Vector3 startPosition;
     private Vector3 targetPoint;
     private Animator animator;
@@ -64,6 +68,7 @@ public class EnemyPatrol : MonoBehaviour
 
     void Start()
     {
+        currentHealth = maxHealth; // Initialize health
         startPosition = transform.position;
         lastPosition = transform.position;
         PickRandomPoint(startPosition, patrolRadius);
@@ -661,5 +666,27 @@ public class EnemyPatrol : MonoBehaviour
         Vector3 rightEdge = Quaternion.Euler(0, 0, halfAngle) * facingDir3D * chaseRadius;
         Gizmos.DrawLine(enemyPos, enemyPos + leftEdge);
         Gizmos.DrawLine(enemyPos, enemyPos + rightEdge);
+    }
+
+    // Called when enemy takes damage
+    public void TakeDamage(float damage)
+    {
+        currentHealth -= damage;
+        Debug.Log(gameObject.name + " took " + damage + " damage! Current HP: " + currentHealth + "/" + maxHealth);
+
+        if (currentHealth <= 0)
+        {
+            currentHealth = 0;
+            Die();
+        }
+    }
+
+    private void Die()
+    {
+        Debug.Log(gameObject.name + " has died!");
+        // TODO: Play death animation
+        // TODO: Disable movement/AI
+        // For now, just destroy the object
+        Destroy(gameObject, 0.5f); // Small delay before destroying
     }
 }

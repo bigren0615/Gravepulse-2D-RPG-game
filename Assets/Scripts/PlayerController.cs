@@ -34,6 +34,10 @@ public class PlayerController : MonoBehaviour
 
     [Header("Attack")]
     public float attackCooldown = 0.25f;
+    public float attackRange = 1.2f; // How far the attack reaches
+    public float attackAngle = 90f; // Attack arc in degrees
+    public float attackDamage = 10f; // Damage dealt to enemies
+    public LayerMask enemyLayer; // What layer enemies are on
     private float lastAttackTime = -Mathf.Infinity;
     private bool facingLocked = false;
     private Vector2 attackDir;
@@ -230,6 +234,38 @@ public class PlayerController : MonoBehaviour
     public void AttackEnd()
     {
         facingLocked = false;
+    }
+
+    // Called by animation event at the moment of impact (when sword actually hits)
+    public void AttackHit()
+    {
+        DetectAndDamageEnemies();
+    }
+
+    // Detect enemies in attack range and damage them
+    private void DetectAndDamageEnemies()
+    {
+        // Get all colliders in attack range
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(transform.position, attackRange, enemyLayer);
+
+        foreach (Collider2D enemy in hitEnemies)
+        {
+            // Calculate direction to enemy
+            Vector2 dirToEnemy = (enemy.transform.position - transform.position).normalized;
+
+            // Check if enemy is within attack angle
+            float angleToEnemy = Vector2.Angle(attackDir, dirToEnemy);
+            
+            if (angleToEnemy <= attackAngle / 2f)
+            {
+                // Enemy is within attack arc - deal damage
+                EnemyPatrol enemyScript = enemy.GetComponent<EnemyPatrol>();
+                if (enemyScript != null)
+                {
+                    enemyScript.TakeDamage(attackDamage);
+                }
+            }
+        }
     }
 
     // 6 Footstep sounds based on movement and timing

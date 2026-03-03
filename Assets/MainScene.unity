@@ -725,7 +725,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 869503918}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Enemies
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -836,6 +836,12 @@ MonoBehaviour:
   dashEffectPrefab: {fileID: 334256193741341976, guid: a2d9988b78d3d0b49a7b59adf12df5b4, type: 3}
   footstepInterval: 0.5
   attackCooldown: 0.4
+  attackRange: 1.2
+  attackAngle: 90
+  attackDamage: 10
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 512
 --- !u!50 &1098726797
 Rigidbody2D:
   serializedVersion: 4
@@ -1140,7 +1146,7 @@ GameObject:
   - component: {fileID: 1542459951}
   - component: {fileID: 1542459952}
   - component: {fileID: 1542459953}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: EnemyGoblin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1240,6 +1246,7 @@ MonoBehaviour:
   stuckThreshold: 0.1
   stuckTimeLimit: 1.5
   player: {fileID: 1098726794}
+  maxHealth: 100
 --- !u!95 &1542459950
 Animator:
   serializedVersion: 5
