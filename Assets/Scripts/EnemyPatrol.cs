@@ -57,13 +57,11 @@ public class EnemyPatrol : MonoBehaviour
     private float stuckTimer = 0f;
     private Vector2 avoidanceDirection = Vector2.zero; // Current avoidance direction
 
-    // Music state tracking
-    private bool isBattleMusicPlaying = false;
-    private bool hasPlayedSpottedSound = false;
-    private float battleMusicDelay = 0f;
-    private const float BATTLE_MUSIC_DELAY_TIME = 1.0f; // Delay after suspense sound
+    // Combat state tracking
+    private bool isInCombat = false;
 
     // Bubble tracking
+    private bool hasPlayedSpottedSound = false;
     private bool hasPlayedQuestionBubble = false;
 
     void Start()
@@ -125,7 +123,6 @@ public class EnemyPatrol : MonoBehaviour
                 {
                     AudioManager.Instance.PlaySFX(SFXType.Suspense);
                     hasPlayedSpottedSound = true;
-                    battleMusicDelay = BATTLE_MUSIC_DELAY_TIME;
                     
                     // Show suspense bubble above enemy's head
                     if (bubbleController != null)
@@ -185,34 +182,25 @@ public class EnemyPatrol : MonoBehaviour
         {
             ChasePlayer();
 
-            // Start battle music when chasing (after delay for suspense sound)
-            if (!isBattleMusicPlaying)
+            // Enter combat state when chasing
+            if (!isInCombat)
             {
-                if (battleMusicDelay > 0f)
-                {
-                    battleMusicDelay -= Time.deltaTime;
-                }
-                else
-                {
-                    AudioManager.Instance.CrossfadeMusic(MusicType.BattleBGM1, 0.5f);
-                    isBattleMusicPlaying = true;
-                }
+                EnterCombat();
             }
         }
         else if (isSearching)
         {
             SearchForPlayer();
-            // Keep battle music during search
+            // Stay in combat during search
         }
         else
         {
             Patrol();
 
-            // Return to ambient music when back to normal patrol
-            if (isBattleMusicPlaying)
+            // Exit combat when back to normal patrol
+            if (isInCombat)
             {
-                AudioManager.Instance.CrossfadeMusic(MusicType.AmbientBGM, 0.5f);
-                isBattleMusicPlaying = false;
+                ExitCombat();
             }
             
             // Reset bubble flags when back to patrol
@@ -674,6 +662,12 @@ public class EnemyPatrol : MonoBehaviour
         currentHealth -= damage;
         Debug.Log(gameObject.name + " took " + damage + " damage! Current HP: " + currentHealth + "/" + maxHealth);
 
+        // Enter combat when hit
+        if (!isInCombat)
+        {
+            EnterCombat();
+        }
+
         if (currentHealth <= 0)
         {
             currentHealth = 0;
@@ -684,9 +678,45 @@ public class EnemyPatrol : MonoBehaviour
     private void Die()
     {
         Debug.Log(gameObject.name + " has died!");
+        
+        // Exit combat when dying
+        if (isInCombat)
+        {
+            ExitCombat();
+        }
+        
         // TODO: Play death animation
         // TODO: Disable movement/AI
         // For now, just destroy the object
         Destroy(gameObject, 0.5f); // Small delay before destroying
+    }
+
+    // Enter combat state
+    private void EnterCombat()
+    {
+        isInCombat = true;
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.EnterCombat(this);
+        }
+    }
+
+    // Exit combat state
+    private void ExitCombat()
+    {
+        isInCombat = false;
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.ExitCombat(this);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Make sure to exit combat when destroyed
+        if (isInCombat && GameManager.Instance != null)
+        {
+            GameManager.Instance.ExitCombat(this);
+        }
     }
 }
