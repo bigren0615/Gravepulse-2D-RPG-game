@@ -26,6 +26,7 @@ public class PlayerController : MonoBehaviour
 
     // String arrays for footstep sound names
     private string[] grassFootsteps = { "FootstepGrass1", "FootstepGrass2", "FootstepGrass3" };
+    private string[] attackSwooshs = { "AttackSwoosh1", "AttackSwoosh2", "AttackSwoosh3" };
 
     //Ground detection
     private bool isOnGrass;
@@ -208,6 +209,7 @@ public class PlayerController : MonoBehaviour
     {
         lastAttackTime = Time.time;
         animator.SetTrigger("Attack");
+        AudioManager.Instance.PlayRandomSFX(attackSwooshs);
     }
 
     // Called by animation event at the start of the attack animation
