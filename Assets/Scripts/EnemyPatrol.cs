@@ -54,6 +54,9 @@ public class EnemyPatrol : MonoBehaviour
 
     // Music state tracking
     private bool isBattleMusicPlaying = false;
+    private bool hasPlayedSpottedSound = false;
+    private float battleMusicDelay = 0f;
+    private const float BATTLE_MUSIC_DELAY_TIME = 1.0f; // Delay after suspense sound
 
     void Start()
     {
@@ -103,6 +106,15 @@ public class EnemyPatrol : MonoBehaviour
                 lastKnownPlayerPosition = player.transform.position;
                 hasPlayerInMemory = true;
                 lostSightTimer = 0f;
+                
+                // Play suspense sound when first spotting player
+                if (!isChasing && !hasPlayedSpottedSound)
+                {
+                    AudioManager.Instance.PlaySFX("Suspense");
+                    hasPlayedSpottedSound = true;
+                    battleMusicDelay = BATTLE_MUSIC_DELAY_TIME;
+                }
+                
                 isChasing = true;
                 isSearching = false; // Exit search mode if spotted player again
             }
@@ -156,11 +168,18 @@ public class EnemyPatrol : MonoBehaviour
         {
             ChasePlayer();
 
-            // Start battle music when chasing
+            // Start battle music when chasing (after delay for suspense sound)
             if (!isBattleMusicPlaying)
             {
-                AudioManager.Instance.CrossfadeMusic("BattleBGM1", 0.5f);
-                isBattleMusicPlaying = true;
+                if (battleMusicDelay > 0f)
+                {
+                    battleMusicDelay -= Time.deltaTime;
+                }
+                else
+                {
+                    AudioManager.Instance.CrossfadeMusic("BattleBGM1", 0.5f);
+                    isBattleMusicPlaying = true;
+                }
             }
         }
         else if (isSearching)
@@ -178,6 +197,9 @@ public class EnemyPatrol : MonoBehaviour
                 AudioManager.Instance.CrossfadeMusic("AmbientBGM", 0.5f);
                 isBattleMusicPlaying = false;
             }
+            
+            // Reset suspense flag when back to patrol
+            hasPlayedSpottedSound = false;
         }
 
         // Detect if stuck

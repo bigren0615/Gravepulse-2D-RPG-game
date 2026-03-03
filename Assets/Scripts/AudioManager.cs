@@ -104,30 +104,6 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-        // Fade between music tracks
-    public void SwitchMusic(string newMusicName)
-    {
-        Sound newSound = System.Array.Find(music, sound => sound.name == newMusicName);
-        if (newSound == null)
-        {
-            Debug.LogWarning("Music not found: " + newMusicName);
-            return;
-        }
-
-        // Stop all other music
-        foreach (Sound m in music)
-        {
-            if (m.source.isPlaying && m.name != newMusicName)
-                m.source.Stop();
-        }
-
-        // Play new music if not already playing
-        if (!newSound.source.isPlaying)
-        {
-            newSound.source.Play();
-        }
-    }
-
     // Check if specific music is playing
     public bool IsMusicPlaying(string musicName)
     {
@@ -214,5 +190,21 @@ public class AudioManager : MonoBehaviour
 
         lastRandomIndex = index;
         PlaySFX(soundNames[index]);
+    }
+
+    // Play random music from array (no consecutive repeats)
+    private int lastRandomMusicIndex = -1;
+    public void PlayRandomMusic(string[] musicNames, float fadeDuration = 1f)
+    {
+        if (musicNames == null || musicNames.Length == 0) return;
+
+        int index;
+        do
+        {
+            index = Random.Range(0, musicNames.Length);
+        } while (index == lastRandomMusicIndex && musicNames.Length > 1);
+
+        lastRandomMusicIndex = index;
+        CrossfadeMusic(musicNames[index], fadeDuration);
     }
 }

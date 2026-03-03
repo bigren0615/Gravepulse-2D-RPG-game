@@ -1226,7 +1226,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   patrolRadius: 3
-  speed: 2
+  speed: 3
   waitTime: 1
   chaseRadius: 7
   stopDistance: 0.5
@@ -1411,17 +1411,24 @@ MonoBehaviour:
     pitchMax: 1.05
     loop: 0
     source: {fileID: 0}
+  - name: Suspense
+    clip: {fileID: 8300000, guid: 09ec99f375da74140b9d6ad1f283cb40, type: 3}
+    volume: 0.4
+    pitchMin: 0.95
+    pitchMax: 1.05
+    loop: 0
+    source: {fileID: 0}
   music:
   - name: AmbientBGM
     clip: {fileID: 8300000, guid: 5e5b3ffed146e664ca3995e8dec98f0f, type: 3}
-    volume: 0.5
+    volume: 0.4
     pitchMin: 0
     pitchMax: 0
     loop: 1
     source: {fileID: 0}
   - name: BattleBGM1
     clip: {fileID: 8300000, guid: 77bbe5f640a474448a54b1887d7e993a, type: 3}
-    volume: 0.4
+    volume: 0.2
     pitchMin: 0
     pitchMax: 0
     loop: 1
