@@ -1111,7 +1111,7 @@ Transform:
   m_GameObject: {fileID: 1542459946}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 6.94, y: 3.14, z: 10.0187645}
+  m_LocalPosition: {x: 6.94, y: 3.14, z: 0}
   m_LocalScale: {x: 0.7, y: 0.7, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1184,8 +1184,9 @@ MonoBehaviour:
   patrolRadius: 3
   speed: 2
   waitTime: 1
-  chaseRadius: 5
+  chaseRadius: 7
   stopDistance: 0.5
+  fieldOfViewAngle: 110
   player: {fileID: 1098726794}
 --- !u!95 &1542459950
 Animator:
