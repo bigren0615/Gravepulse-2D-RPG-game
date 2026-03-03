@@ -31,6 +31,13 @@ public class EnemyPatrol : MonoBehaviour
     public float maxHealth = 100f;
     private float currentHealth;
 
+    [Header("Visual Effects")]
+    public Color damageFlashColor = Color.red; // Color to flash when taking damage
+    public float flashDuration = 0.1f; // How long each flash lasts
+    public int flashCount = 2; // Number of times to flash
+    private Color originalColor; // Store the original sprite color
+    private bool isFlashing = false; // Prevent overlapping flash effects
+
     private Vector3 startPosition;
     private Vector3 targetPoint;
     private Animator animator;
@@ -78,6 +85,9 @@ public class EnemyPatrol : MonoBehaviour
         
         if (spriteRenderer == null)
             Debug.LogError("Enemy needs a SpriteRenderer!");
+        else
+            originalColor = spriteRenderer.color; // Store original color
+        
         if (bubbleController == null)
             Debug.LogWarning("BubbleController component not found on " + gameObject.name + ". Bubbles will not appear.");
 
@@ -669,6 +679,12 @@ public class EnemyPatrol : MonoBehaviour
         currentHealth -= damage;
         Debug.Log(gameObject.name + " took " + damage + " damage! Current HP: " + currentHealth + "/" + maxHealth);
 
+        // Flash red to show damage
+        if (!isFlashing)
+        {
+            StartCoroutine(DamageFlash());
+        }
+
         // Enter combat when hit
         if (!isInCombat)
         {
@@ -680,6 +696,30 @@ public class EnemyPatrol : MonoBehaviour
             currentHealth = 0;
             Die();
         }
+    }
+
+    // Flash the sprite red when taking damage
+    private IEnumerator DamageFlash()
+    {
+        isFlashing = true;
+
+        // Flash multiple times
+        for (int i = 0; i < flashCount; i++)
+        {
+            // Change to damage flash color
+            if (spriteRenderer != null)
+                spriteRenderer.color = damageFlashColor;
+
+            yield return new WaitForSeconds(flashDuration);
+
+            // Return to original color
+            if (spriteRenderer != null)
+                spriteRenderer.color = originalColor;
+
+            yield return new WaitForSeconds(flashDuration);
+        }
+
+        isFlashing = false;
     }
 
     private void Die()
