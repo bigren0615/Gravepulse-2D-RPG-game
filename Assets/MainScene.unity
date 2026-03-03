@@ -800,6 +800,7 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 8192
+  attackCooldown: 0.4
 --- !u!50 &1098726797
 Rigidbody2D:
   serializedVersion: 4
@@ -1133,7 +1134,7 @@ GameObject:
   - component: {fileID: 1951045313}
   - component: {fileID: 1951045315}
   m_Layer: 13
-  m_Name: Ground
+  m_Name: GroundGrass
   m_TagString: Grass
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

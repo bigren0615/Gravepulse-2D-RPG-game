@@ -38,6 +38,14 @@ public class PlayerController : MonoBehaviour
     private bool isOnGrass;
     private Vector2 lastPosition;
 
+    [Header("Attack")]
+    public float attackCooldown = 0.25f;
+    private float lastAttackTime = -Mathf.Infinity;
+    private bool isAttacking = false;
+    private bool facingLocked = false;
+    private bool attackFacingRight;
+    private Vector2 attackDir;
+
     private Vector2 movementInput;
     private Rigidbody2D rb;
     private Animator animator;
@@ -72,6 +80,15 @@ public class PlayerController : MonoBehaviour
             }
         }
 
+        // Attack input (LEFT CLICK or Z)
+        if (Time.time >= lastAttackTime + attackCooldown)
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Z))
+            {
+                Attack();
+            }
+        }
+
         ReadInput();
         UpdateAnimation();
     }
@@ -94,14 +111,24 @@ public class PlayerController : MonoBehaviour
         movementInput = movementInput.normalized;
 
         // Update lastMoveDir only when input is not zero
-        if (movementInput != Vector2.zero)
+        if (!isAttacking && movementInput != Vector2.zero)
         {
             lastMoveDir = movementInput;
         }
 
         // Base sprite faces LEFT; flipX when moving right
-        if (movementInput.x > 0) spriteRenderer.flipX = true;
-        else if (movementInput.x < 0) spriteRenderer.flipX = false;
+        if (facingLocked)
+        {
+            // Force stored facing direction
+            spriteRenderer.flipX = attackFacingRight;
+        }
+        else
+        {
+            if (movementInput.x > 0)
+                spriteRenderer.flipX = true;
+            else if (movementInput.x < 0)
+                spriteRenderer.flipX = false;
+        }
     }
 
     // 2️ Physics-based movement
@@ -119,7 +146,12 @@ public class PlayerController : MonoBehaviour
 
         animator.SetBool("isMoving", isMoving);
 
-        if (isMoving)
+        if (isAttacking)
+        {
+            animator.SetFloat("moveX", Mathf.Abs(attackDir.x));
+            animator.SetFloat("moveY", attackDir.y);
+        }
+        else if (isMoving)
         {
             animator.SetFloat("moveX", Mathf.Abs(movementInput.x));
             animator.SetFloat("moveY", movementInput.y);
@@ -184,7 +216,33 @@ public class PlayerController : MonoBehaviour
         isDashing = false;
     }
 
-    // 5️ Footstep sounds based on movement and timing
+    // 5 Attack method to trigger attack animation and cooldown
+    private void Attack()
+    {
+        lastAttackTime = Time.time;
+        animator.SetTrigger("Attack");
+    }
+
+    // Called by animation event at the start of the attack animation
+    public void AttackStart()
+    {
+        isAttacking = true;
+        facingLocked = true;
+
+        // Store facing direction ONCE
+        attackFacingRight = spriteRenderer.flipX;
+
+        // Store FULL attack direction (up/down/left/right)
+        attackDir = lastMoveDir;
+    }
+
+    public void AttackEnd()
+    {
+        isAttacking = false;
+        facingLocked = false;
+    }
+
+    // 6 Footstep sounds based on movement and timing
     private void HandleFootsteps()
     {
         // Do not play footsteps while dashing
