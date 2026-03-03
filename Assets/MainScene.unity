@@ -1247,6 +1247,11 @@ MonoBehaviour:
   obstacleCheckRadius: 0.15
   stuckThreshold: 0.1
   stuckTimeLimit: 1.5
+  separationDistance: 0.8
+  separationForce: 1.5
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 512
   player: {fileID: 1098726794}
   maxHealth: 100
   damageFlashColor: {r: 1, g: 0, b: 0, a: 1}
@@ -1573,6 +1578,11 @@ MonoBehaviour:
   obstacleCheckRadius: 0.15
   stuckThreshold: 0.1
   stuckTimeLimit: 1.5
+  separationDistance: 0.8
+  separationForce: 1.5
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 512
   player: {fileID: 1098726794}
   maxHealth: 100
   damageFlashColor: {r: 1, g: 0, b: 0, a: 1}

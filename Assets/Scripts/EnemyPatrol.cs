@@ -24,6 +24,11 @@ public class EnemyPatrol : MonoBehaviour
     public float stuckThreshold = 0.1f; // Distance threshold to detect if stuck
     public float stuckTimeLimit = 1.5f; // Time before considering enemy stuck
 
+    [Header("Enemy Separation")]
+    public float separationDistance = 0.8f; // Minimum distance to keep from other enemies
+    public float separationForce = 1.5f; // How strongly to push away from other enemies
+    public LayerMask enemyLayer; // Layer mask for detecting other enemies
+
     [Header("References")]
     public GameObject player; // Assign manually or leave blank to auto-find by tag
 
@@ -346,6 +351,10 @@ public class EnemyPatrol : MonoBehaviour
             return;
         }
 
+        // Apply enemy separation to prevent stacking
+        Vector2 separationVector = GetSeparationVector();
+        finalDirection = (finalDirection + separationVector).normalized;
+
         // Apply movement
         Vector3 movement = new Vector3(finalDirection.x, finalDirection.y, 0f) * speed * Time.deltaTime;
         transform.position += movement;
@@ -435,6 +444,46 @@ public class EnemyPatrol : MonoBehaviour
             }
         }
         return true; // Path clear
+    }
+
+    // ---------------- Enemy Separation ----------------
+    private Vector2 GetSeparationVector()
+    {
+        // Find all nearby enemies
+        Collider2D[] nearbyEnemies = Physics2D.OverlapCircleAll(transform.position, separationDistance, enemyLayer);
+        
+        Vector2 separationVector = Vector2.zero;
+        int separationCount = 0;
+
+        foreach (Collider2D enemyCollider in nearbyEnemies)
+        {
+            // Skip self
+            if (enemyCollider.gameObject == gameObject)
+                continue;
+
+            // Calculate direction away from this enemy
+            Vector2 enemyPos = new Vector2(enemyCollider.transform.position.x, enemyCollider.transform.position.y);
+            Vector2 myPos = new Vector2(transform.position.x, transform.position.y);
+            Vector2 awayFromEnemy = myPos - enemyPos;
+            float distance = awayFromEnemy.magnitude;
+
+            // Only apply separation if within separation distance
+            if (distance < separationDistance && distance > 0.01f)
+            {
+                // The closer they are, the stronger the push
+                float strength = (separationDistance - distance) / separationDistance;
+                separationVector += awayFromEnemy.normalized * strength;
+                separationCount++;
+            }
+        }
+
+        // Average and apply separation force multiplier
+        if (separationCount > 0)
+        {
+            separationVector = (separationVector / separationCount) * separationForce;
+        }
+
+        return separationVector;
     }
 
     private Vector2 RotateVector(Vector2 vec, float degrees)
@@ -634,6 +683,10 @@ public class EnemyPatrol : MonoBehaviour
                 Gizmos.DrawLine(transform.position, player.transform.position);
             }
         }
+
+        // Draw enemy separation radius
+        Gizmos.color = new Color(0f, 1f, 1f, 0.2f); // Cyan, semi-transparent
+        Gizmos.DrawWireSphere(transform.position, separationDistance);
     }
 
     private void DrawFieldOfViewCone()
