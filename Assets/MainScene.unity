@@ -767,7 +767,7 @@ GameObject:
   - component: {fileID: 1098726802}
   m_Layer: 8
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1184,6 +1184,9 @@ MonoBehaviour:
   patrolRadius: 3
   speed: 2
   waitTime: 1
+  chaseRadius: 5
+  stopDistance: 0.5
+  player: {fileID: 1098726794}
 --- !u!95 &1542459950
 Animator:
   serializedVersion: 5
