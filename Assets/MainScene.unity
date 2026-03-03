@@ -836,12 +836,13 @@ MonoBehaviour:
   dashEffectPrefab: {fileID: 334256193741341976, guid: a2d9988b78d3d0b49a7b59adf12df5b4, type: 3}
   footstepInterval: 0.5
   attackCooldown: 0.4
-  attackRange: 1.2
+  attackRange: 1.5
   attackAngle: 90
   attackDamage: 10
   enemyLayer:
     serializedVersion: 2
     m_Bits: 512
+  showAttackDebug: 1
 --- !u!50 &1098726797
 Rigidbody2D:
   serializedVersion: 4
