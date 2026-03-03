@@ -7,7 +7,7 @@
 ![Unity](https://img.shields.io/badge/Unity-2022+-black?logo=unity&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?logo=c-sharp&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-In%20Development-orange)
-![Progress](https://img.shields.io/badge/Overall%20Progress-45%25-blue)
+![Progress](https://img.shields.io/badge/Overall%20Progress-65%25-blue)
 
 > **Goal:** Real-time physics-driven top-down action RPG with fluid combat, dodge mechanics, and responsive input.
 
@@ -29,7 +29,7 @@
 ## 📊 Overall Progress
 
 ```
-Total Completion  █████████░░░░░░░░░░░  45%
+Total Completion  █████████████░░░░░░░  65%
 ```
 
 ---
@@ -150,9 +150,9 @@ MainScene
 
 ---
 
-### 🏃 Phase 7 — Real-Time Movement
+### 🏃 Phase 7 — Real-Time Movement & Attack Input
 ```
-█████████████████████░   95%  🔄 IN PROGRESS
+██████████████████████  100%  ✅ COMPLETE
 ```
 - [x] `PlayerController.cs` implemented
 - [x] `Input.GetAxisRaw` for instant response
@@ -161,10 +161,12 @@ MainScene
 - [x] Animation sync via blend trees (`isMoving`, `moveX`, `moveY` params)
 - [x] Sprite flip (`flipX`) for left ↔ right mirroring
 - [x] Dash / dodge system (Left Shift or Right-Click, with VFX + SFX)
-- [ ] Movement cancellation during hit-stun
+- [x] Attack input (Left Click or Z key)
+- [x] Face-lock during attack animation
+- [x] Movement cancellation during attack (facing locked to attack direction)
 
 <details>
-<summary>📌 PlayerController.cs</summary>
+<summary>📌 PlayerController.cs (key structure)</summary>
 
 ```csharp
 [RequireComponent(typeof(Rigidbody2D))]
@@ -178,143 +180,123 @@ public class PlayerController : MonoBehaviour
     public float dashSpeed = 12f;
     public float dashDuration = 0.15f;
     public float dashCooldown = 0.5f;
-    private bool isDashing = false;
-    private float lastDashTime = -Mathf.Infinity;
-    private Vector2 lastMoveDir = Vector2.down;
-
-    [Header("Dash Effects")]
     public GameObject dashEffectPrefab;
 
-    [Header("Audio")]
-    public AudioClip dashSFX;
-    public AudioClip[] footstepClips;
+    [Header("Attack")]
+    public float attackCooldown = 0.25f;
+    public float attackRange = 1.2f;
+    public float attackAngle = 90f;
+    public float attackDamage = 10f;
+    public LayerMask enemyLayer;
+
+    [Header("Footsteps")]
     public float footstepInterval = 0.8f;
-    private AudioSource audioSource;
 
-    private Vector2 movementInput;
-    private Rigidbody2D rb;
-    private Animator animator;
-
-    private void Awake()
-    {
-        rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
-        audioSource = GetComponent<AudioSource>();
-        if (spriteRenderer == null)
-            spriteRenderer = GetComponent<SpriteRenderer>();
-    }
+    // Type-safe enum arrays for SFX
+    private SFXType[] grassFootsteps = { SFXType.FootstepGrass1, SFXType.FootstepGrass2, SFXType.FootstepGrass3 };
+    private SFXType[] attackSwooshs  = { SFXType.AttackSwoosh1,  SFXType.AttackSwoosh2,  SFXType.AttackSwoosh3  };
+    private SFXType[] attackSlashes  = { SFXType.Slash1,          SFXType.Slash2,          SFXType.Slash3          };
 
     private void Update()
     {
+        // Dash input: Left Shift or Right-Click
         if (!isDashing && Time.time >= lastDashTime + dashCooldown)
             if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetMouseButtonDown(1))
                 StartCoroutine(Dash());
+
+        // Attack input: Left Click or Z
+        if (Time.time >= lastAttackTime + attackCooldown)
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Z))
+                Attack();
+
         ReadInput();
         UpdateAnimation();
     }
 
-    private void FixedUpdate() { if (!isDashing) Move(); HandleFootsteps(); }
+    // Called by animation event — locks facing and clears hit set
+    public void AttackStart() { facingLocked = true; attackDir = lastMoveDir; hitEnemiesThisAttack.Clear(); }
+    public void AttackEnd()   { facingLocked = false; }
 
-    private void ReadInput()
-    {
-        if (isDashing) return;
-        movementInput.x = Input.GetAxisRaw("Horizontal");
-        movementInput.y = Input.GetAxisRaw("Vertical");
-        movementInput = movementInput.normalized;
-        if (movementInput != Vector2.zero) lastMoveDir = movementInput;
-        if (movementInput.x > 0) spriteRenderer.flipX = true;
-        else if (movementInput.x < 0) spriteRenderer.flipX = false;
-    }
+    // Called by animation event at moment of impact
+    public void AttackHit()   { DetectAndDamageEnemies(); }
 
-    private void Move()
+    private void DetectAndDamageEnemies()
     {
-        rb.MovePosition(rb.position + movementInput * moveSpeed * Time.fixedDeltaTime);
-    }
-
-    private void UpdateAnimation()
-    {
-        bool isMoving = movementInput != Vector2.zero;
-        animator.SetBool("isMoving", isMoving);
-        if (isMoving)
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, attackRange, enemyLayer);
+        bool hitAny = false;
+        foreach (var enemy in hits)
         {
-            animator.SetFloat("moveX", Mathf.Abs(movementInput.x));
-            animator.SetFloat("moveY", movementInput.y);
-        }
-    }
-
-    private IEnumerator Dash()
-    {
-        isDashing = true;
-        lastDashTime = Time.time;
-        Vector2 dir = movementInput != Vector2.zero ? movementInput : lastMoveDir;
-        if (dashEffectPrefab != null)
-        {
-            GameObject vfx = Instantiate(dashEffectPrefab, transform.position,
-                                         Quaternion.identity, transform);
-            vfx.transform.localPosition = -(Vector3)dir * 2f;
-            vfx.transform.rotation = Quaternion.Euler(0, 0,
-                Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
-            Animator vfxAnim = vfx.GetComponent<Animator>();
-            if (vfxAnim != null)
+            if (hitEnemiesThisAttack.Contains(enemy)) continue;
+            float angle = Vector2.Angle(attackDir, (enemy.transform.position - transform.position).normalized);
+            if (angle <= attackAngle / 2f)
             {
-                float len = vfxAnim.runtimeAnimatorController.animationClips[0].length;
-                vfxAnim.Play(vfxAnim.runtimeAnimatorController.animationClips[0].name, 0, 0f);
-                Destroy(vfx, len);
-            }
-            else Destroy(vfx, 1f);
-        }
-        if (dashSFX != null && audioSource != null) audioSource.PlayOneShot(dashSFX);
-        float start = Time.time;
-        while (Time.time < start + dashDuration)
-        {
-            rb.MovePosition(rb.position + dir * dashSpeed * Time.fixedDeltaTime);
-            yield return new WaitForFixedUpdate();
-        }
-        isDashing = false;
-    }
-
-    // Footsteps play only when moving on grass (OnTriggerStay2D sets isOnGrass)
-    private bool isOnGrass;
-    private Vector2 lastPosition;
-    private float footstepTimer;
-    private int lastFootstepIndex = -1;
-
-    private void HandleFootsteps()
-    {
-        if (isDashing) { footstepTimer = 0f; return; }
-        float moved = Vector2.Distance(rb.position, lastPosition);
-        lastPosition = rb.position;
-        if (moved > 0.01f)
-        {
-            footstepTimer += Time.deltaTime;
-            if (footstepTimer >= footstepInterval)
-            {
-                if (isOnGrass) PlayFootstepGrass();
-                footstepTimer = 0f;
+                enemy.GetComponent<EnemyPatrol>()?.TakeDamage(attackDamage);
+                hitEnemiesThisAttack.Add(enemy);
+                hitAny = true;
             }
         }
-        else footstepTimer = 0f;
+        if (hitAny) AudioManager.Instance.PlayRandomSFX(attackSlashes);
     }
-
-    private void PlayFootstepGrass()
-    {
-        if (footstepClips == null || footstepClips.Length == 0) return;
-        int index;
-        do { index = Random.Range(0, footstepClips.Length); }
-        while (index == lastFootstepIndex && footstepClips.Length > 1);
-        lastFootstepIndex = index;
-        audioSource.pitch = Random.Range(0.95f, 1.05f);
-        audioSource.PlayOneShot(footstepClips[index], 0.6f);
-        audioSource.pitch = 1f;
-    }
-
-    private void OnTriggerStay2D(Collider2D other)
-    { if (other.CompareTag("Grass")) isOnGrass = true; }
-    private void OnTriggerExit2D(Collider2D other)
-    { if (other.CompareTag("Grass")) isOnGrass = false; }
 }
 ```
 </details>
+
+---
+
+### ⚔️ Phase 8 — Combat System
+```
+████████████░░░░░░░░░░   55%  🔄 IN PROGRESS
+```
+- [x] Attack input (Left Click / Z key)
+- [x] Arc-based hitbox detection (`Physics2D.OverlapCircleAll` + angle check)
+- [x] Attack damage applied to enemies
+- [x] Per-attack enemy hit tracking (no double-hit in one swing)
+- [x] Enemy HP system (`maxHealth`, `currentHealth`, `TakeDamage`)
+- [x] Enemy death state (`isDead` flag + death animation trigger)
+- [x] Attack animation events (`AttackStart`, `AttackHit`, `AttackEnd`)
+- [x] Attack SFX (swoosh ×3, slash/impact ×3)
+- [x] Attack debug visualization (Gizmos arc)
+- [ ] Knockback on enemy hit
+- [ ] Hitstop (freeze frames)
+- [ ] Dodge I-frames during dash
+- [ ] Combo system
+
+---
+
+### 🤖 Phase 9 — Enemy AI
+```
+████████████████░░░░░░   75%  🔄 IN PROGRESS
+```
+- [x] `EnemyPatrol.cs` — Goblin enemy implemented
+- [x] Random patrol within patrol radius
+- [x] Player detection via chase radius + field-of-view angle
+- [x] Line-of-sight check (no chasing through walls)
+- [x] Chase memory system (remembers player position after losing sight)
+- [x] Search mode (patrol last known position before giving up)
+- [x] Smart obstacle avoidance (multi-angle steering)
+- [x] Enemy separation (no stacking on each other)
+- [x] Enemy health + damage flash visual feedback
+- [x] Enemy death with death animation + combat exit
+- [x] Emotion bubbles: `!` when spotting player, `?` when losing track
+- [x] Goblin sprite set (Walk / Attack / Dead — Down / Left / Up)
+- [x] Goblin Animator controller (`GoblinAC.controller`)
+- [ ] Enemy attack back (deal damage to player)
+- [ ] Multiple enemy types
+
+---
+
+### 🧩 Phase 10 — System Architecture
+```
+██████████████████████  100%  ✅ COMPLETE
+```
+- [x] `GameManager.cs` — Singleton, combat state tracking
+- [x] Dynamic music switching: ambient BGM ↔ battle BGM (crossfade)
+- [x] `AudioManager.cs` — Singleton with `Sound[]` arrays + `AudioSource` pooling
+- [x] Type-safe sound enums (`SFXType`, `MusicType`) via `SoundEnums.cs`
+- [x] `PlaySFX(SFXType)`, `PlayRandomSFX(SFXType[])`, `CrossfadeMusic()` API
+- [x] `BubbleController.cs` — Reusable emotion bubble system
+- [x] Bubble prefabs: `SuspenseBubble.prefab` (!), `QuestionBubble.prefab` (?)
+- [x] Bubble emote sprite sheet (`bubble emotes july update.png`)
 
 ---
 
@@ -322,7 +304,7 @@ public class PlayerController : MonoBehaviour
 
 ### 🕹️ Movement
 ```
-█████████████████████░   95%  🔄 IN PROGRESS
+██████████████████████  100%  ✅ COMPLETE
 ```
 | Feature | Status |
 |---|:---:|
@@ -333,13 +315,14 @@ public class PlayerController : MonoBehaviour
 | Sprite flip for left ↔ right mirroring | ✅ |
 | Dash / Dodge roll (Left Shift or Right-Click) | ✅ |
 | Dash VFX trailing effect | ✅ |
+| Face-lock during attack | ✅ |
 | Knockback on hit | ❌ |
 
 ---
 
 ### 🎬 Animation
 ```
-█████████████████░░░░░   75%  🔄 IN PROGRESS
+███████████████████░░░   85%  🔄 IN PROGRESS
 ```
 | Animation | Status |
 |---|:---:|
@@ -348,27 +331,70 @@ public class PlayerController : MonoBehaviour
 | Attack Down / Left / Up | ✅ |
 | Blend-tree directional blending | ✅ |
 | Dash VFX effect animation | ✅ |
+| Goblin Walk Down / Left / Up | ✅ |
+| Goblin Attack Down / Left / Up | ✅ |
+| Goblin Dead Down / Left / Up | ✅ |
+| Emotion bubbles (! and ?) | ✅ |
 | Dodge / Roll player animation | ❌ |
-| Hit / Hurt animation | ❌ |
-| Death animation | ❌ |
+| Player Hit / Hurt animation | ❌ |
+| Player Death animation | ❌ |
 
 ---
 
 ### ⚔️ Combat
 ```
-████░░░░░░░░░░░░░░░░░░   15%  🔄 IN PROGRESS
+████████████░░░░░░░░░░   55%  🔄 IN PROGRESS
 ```
 | Feature | Status |
 |---|:---:|
 | Attack animations (Down/Left/Up) | ✅ |
-| Attack input detection | ❌ |
-| Hitbox system | ❌ |
-| Damage calculation | ❌ |
-| Enemy HP system | ❌ |
+| Attack input detection (Left Click / Z) | ✅ |
+| Arc-based hitbox system | ✅ |
+| Damage calculation | ✅ |
+| Per-swing hit tracking (no double-hit) | ✅ |
+| Enemy HP system | ✅ |
+| Enemy death state + animation | ✅ |
 | Hitstop (freeze frames) | ❌ |
 | Knockback on enemy | ❌ |
 | Dodge / I-frames | ⏳ (dash done, I-frames pending) |
 | Combo system | ❌ |
+
+---
+
+### 🤖 Enemy AI
+```
+████████████████░░░░░░   75%  🔄 IN PROGRESS
+```
+| Feature | Status |
+|---|:---:|
+| Random patrol within radius | ✅ |
+| Player detection (radius + FOV angle) | ✅ |
+| Line-of-sight check | ✅ |
+| Chase memory (remembers last position) | ✅ |
+| Search mode (patrol last known position) | ✅ |
+| Smart obstacle avoidance | ✅ |
+| Enemy separation (no stacking) | ✅ |
+| Health + damage flash feedback | ✅ |
+| Death state + death animation | ✅ |
+| Emotion bubbles (! / ?) | ✅ |
+| Combat music trigger | ✅ |
+| Enemy attack back (deal damage to player) | ❌ |
+
+---
+
+### 🧩 System Architecture
+```
+██████████████████████  100%  ✅ COMPLETE
+```
+| Feature | Status |
+|---|:---:|
+| `GameManager` singleton (combat state tracking) | ✅ |
+| Dynamic music: ambient ↔ battle crossfade | ✅ |
+| `AudioManager` singleton (pooled AudioSources) | ✅ |
+| Type-safe sound enums (`SFXType` / `MusicType`) | ✅ |
+| `BubbleController` (reusable emotion bubble system) | ✅ |
+| Suspense bubble prefab (!) | ✅ |
+| Question bubble prefab (?) | ✅ |
 
 ---
 
@@ -385,17 +411,20 @@ public class PlayerController : MonoBehaviour
 
 ---
 
-### 🔊 Sound Effects
+### 🔊 Sound Effects & Music
 ```
-███████░░░░░░░░░░░░░░░   33%  🔄 IN PROGRESS
+█████████████████░░░░░   80%  🔄 IN PROGRESS
 ```
 | Feature | Status |
 |---|:---:|
-| Player footstep SFX (grass) | ✅ |
+| Player footstep SFX (grass ×3) | ✅ |
 | Dodge / Dash SFX | ✅ |
-| Attack SFX | ❌ |
-| Hit / Impact SFX | ❌ |
-| Background Music | ❌ |
+| Attack swoosh SFX (×3) | ✅ |
+| Slash / Impact SFX (×3) | ✅ |
+| Enemy spotted SFX (suspense) | ✅ |
+| Ambient background music | ✅ |
+| Battle background music | ✅ |
+| Dynamic music crossfade (ambient ↔ battle) | ✅ |
 | UI interaction SFX | ❌ |
 
 ---
@@ -404,12 +433,13 @@ public class PlayerController : MonoBehaviour
 
 | Phase | Feature | Priority |
 |---|---|:---:|
-| **Phase 8** | Combat System (hitboxes, damage, HP) | 🔴 High |
-| **Phase 9** | ~~Dodge / Dash~~ ✅ → I-frames during dash | 🔴 High |
-| **Phase 10** | Enemy AI (patrol, chase, attack) | 🟠 Medium |
-| **Phase 11** | HUD & UI (HP bar, menus) | 🟠 Medium |
-| **Phase 12** | ~~Sound Effects~~ ⏳ → Attack / Hit SFX + BGM | 🟡 Low |
-| **Phase 13** | Polish (hitstop, screenshake, VFX) | 🟡 Low |
+| **Phase 11** | Combat Polish (knockback, hitstop, I-frames) | 🔴 High |
+| **Phase 12** | Enemy Attack Back (deal damage to player) | 🔴 High |
+| **Phase 13** | Player HP / Hurt / Death system | 🔴 High |
+| **Phase 14** | HUD & UI (HP bar, menus) | 🟠 Medium |
+| **Phase 15** | Multiple enemy types | 🟠 Medium |
+| **Phase 16** | ~~Sound Effects~~ ✅ → UI interaction SFX | 🟡 Low |
+| **Phase 17** | Polish (combo system, screenshake, VFX) | 🟡 Low |
 
 ---
 
@@ -418,38 +448,75 @@ public class PlayerController : MonoBehaviour
 ```
 Assets/
 ├── Animations/
-│   └── Player/
-│       ├── PlayerAnimator.controller        ✅
-│       ├── Player_IdleDown.anim             ✅
-│       ├── Player_IdleLeft.anim             ✅
-│       ├── Player_IdleUp.anim               ✅
-│       ├── Player_WalkDown.anim             ✅
-│       ├── Player_WalkLeft.anim             ✅
-│       ├── Player_walkUp.anim               ✅
-│       ├── Player_AttackDown.anim           ✅
-│       ├── Player_AttackLeft.anim           ✅
-│       └── Player_AttackUp.anim             ✅
+│   ├── Player/
+│   │   ├── PlayerAnimator.controller        ✅
+│   │   ├── Player_IdleDown.anim             ✅
+│   │   ├── Player_IdleLeft.anim             ✅
+│   │   ├── Player_IdleUp.anim               ✅
+│   │   ├── Player_WalkDown.anim             ✅
+│   │   ├── Player_WalkLeft.anim             ✅
+│   │   ├── Player_walkUp.anim               ✅
+│   │   ├── Player_AttackDown.anim           ✅
+│   │   ├── Player_AttackLeft.anim           ✅
+│   │   └── Player_AttackUp.anim             ✅
+│   └── Goblin/
+│       ├── GoblinAC.controller              ✅
+│       ├── Goblin_WalkDown.anim             ✅
+│       ├── Goblin_WalkLeft.anim             ✅
+│       ├── Goblin_WalkUp.anim               ✅
+│       ├── Goblin_AttackDown.anim           ✅
+│       ├── Goblin_AttackLeft.anim           ✅
+│       ├── Goblin_AttackUp.anim             ✅
+│       ├── Goblin_DeadDown.anim             ✅
+│       ├── Goblin_DeadLeft.anim             ✅
+│       └── Goblin_DeadUp.anim               ✅
 ├── Effects/
-│   └── Dash/
-│       ├── DashEffect.controller            ✅
-│       ├── Dash.anim                        ✅
-│       └── FX033_01..10.png                 ✅ (10 VFX frames)
+│   ├── Dash/
+│   │   ├── DashEffect.controller            ✅
+│   │   ├── Dash.anim                        ✅
+│   │   └── FX033_01..10.png                 ✅ (10 VFX frames)
+│   ├── Question/                            ✅ (question bubble animation)
+│   └── Suspense/                            ✅ (suspense bubble animation)
 ├── Scripts/
-│   └── PlayerController.cs                 ✅
+│   ├── PlayerController.cs                  ✅
+│   ├── EnemyPatrol.cs                       ✅
+│   ├── AudioManager.cs                      ✅
+│   ├── GameManager.cs                       ✅
+│   ├── BubbleController.cs                  ✅
+│   └── SoundEnums.cs                        ✅
 ├── Sounds/
+│   ├── BGM/
+│   │   ├── priscilasousa-loop-edm-*.mp3     ✅ (Ambient BGM)
+│   │   └── soulfuljamtracks-edm-loop-*.mp3  ✅ (Battle BGM)
 │   └── SFX/
+│       ├── Slash/
+│       │   └── dragon-studio-*.mp3 (×3)     ✅ (slash/impact SFX)
 │       ├── freesound_community-rustling-grass-*.mp3  ✅ (×3 footstep clips)
-│       └── zapsplat_cartoon_fast_whoosh_*.mp3        ✅ (dash SFX)
+│       ├── zapsplat_cartoon_fast_whoosh_*.mp3        ✅ (dash SFX)
+│       ├── konpeito_sound-knife_swish03-*.mp3        ✅ (attack swoosh ×1)
+│       ├── oxidvideos-sword-swing-*.mp3              ✅ (attack swoosh ×1)
+│       ├── freesound_community-sword-sound-*.mp3     ✅ (attack swoosh ×1)
+│       └── brvhrtz-stab-*.mp3                        ✅ (suspense SFX)
 ├── Sprites/
+│   ├── Enemies/
+│   │   └── Goblin/
+│   │       ├── D_Walk.png / D_Attack.png / D_Death.png  ✅
+│   │       ├── S_Walk.png / S_Attack.png / S_Death.png  ✅
+│   │       └── U_Walk.png / U_Attack.png / U_Death.png  ✅
 │   ├── SpriteSheet.png
 │   ├── TilesetFloor.png
 │   ├── TilesetNature.png
-│   └── skull knight.png                    ✅
+│   ├── bubble emotes july update.png        ✅
+│   ├── skull knight.png                     ✅
+│   ├── skull knight 1.png                   ✅
+│   └── skull knight 2.png                   ✅
 ├── Tiles/
-│   ├── TilesetFloor_0..457.asset           ✅
-│   └── TilesetNature_0..381.asset          ✅
-├── DashEffect.prefab                       ✅
-└── MainScene.unity                         ✅
+│   ├── TilesetFloor_0..457.asset            ✅
+│   └── TilesetNature_0..381.asset           ✅
+├── DashEffect.prefab                        ✅
+├── QuestionBubble.prefab                    ✅
+├── SuspenseBubble.prefab                    ✅
+└── MainScene.unity                          ✅
 ```
 
 ---
@@ -463,8 +530,15 @@ Assets/
 | *(Skull Knight sprite)* | *(add source)* | *(add license)* | Player character |
 | *(Floor tileset)* | *(add source)* | *(add license)* | Environment floor tiles |
 | *(Nature tileset)* | *(add source)* | *(add license)* | Environment props / nature tiles |
+| *(Goblin sprite sheets)* | *(add source)* | *(add license)* | Goblin enemy character |
+| *(Bubble emotes sprite sheet)* | *(add source)* | *(add license)* | Emotion bubbles (!, ?) |
 | Rustling Grass SFX (×3) | freesound_community via Freesound.org | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) | Player footstep sounds on grass |
 | Fast Whoosh / Swipe SFX | ZapSplat (zapsplat.com) | ZapSplat Standard License | Dash / dodge sound effect |
+| Sword Swing SFX (×3) | Various (freesound_community, oxidvideos, konpeito_sound) | *(verify licenses)* | Attack swoosh sound effects |
+| Sword Slash / Slice SFX (×3) | Various (dragon-studio, universfield) via Freesound.org | *(verify licenses)* | Hit / impact sound effects |
+| Stab SFX | brvhrtz via Freesound.org | *(verify license)* | Enemy spotted suspense sound |
+| Ambient BGM loop | priscilasousa via Freesound.org | *(verify license)* | Ambient background music |
+| Battle BGM loop | soulfuljamtracks via Freesound.org | *(verify license)* | Battle background music |
 | *(add asset)* | *(add source)* | *(add license)* | *(add usage)* |
 
 ---
