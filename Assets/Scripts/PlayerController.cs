@@ -27,6 +27,7 @@ public class PlayerController : MonoBehaviour
     // Enum arrays for footstep sound names (type-safe)
     private SFXType[] grassFootsteps = { SFXType.FootstepGrass1, SFXType.FootstepGrass2, SFXType.FootstepGrass3 };
     private SFXType[] attackSwooshs = { SFXType.AttackSwoosh1, SFXType.AttackSwoosh2, SFXType.AttackSwoosh3 };
+    private SFXType[] attackSlashes = { SFXType.Slash1, SFXType.Slash2, SFXType.Slash3 };
 
     //Ground detection
     private bool isOnGrass;
@@ -251,6 +252,8 @@ public class PlayerController : MonoBehaviour
         // Get all colliders in attack range
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(transform.position, attackRange, enemyLayer);
 
+        bool hitAnyEnemy = false; // Track if we hit at least one enemy
+
         foreach (Collider2D enemy in hitEnemies)
         {
             // Skip if already hit this attack
@@ -271,6 +274,7 @@ public class PlayerController : MonoBehaviour
                 {
                     enemyScript.TakeDamage(attackDamage);
                     hitEnemiesThisAttack.Add(enemy); // Mark as hit
+                    hitAnyEnemy = true; // Mark that we hit an enemy
                     
                     // Visual feedback for debugging
                     if (showAttackDebug)
@@ -279,6 +283,12 @@ public class PlayerController : MonoBehaviour
                     }
                 }
             }
+        }
+
+        // Play slash sound if we hit any enemy
+        if (hitAnyEnemy)
+        {
+            AudioManager.Instance.PlayRandomSFX(attackSlashes);
         }
     }
 

@@ -15,7 +15,10 @@ public enum SFXType
     FootstepGrass3,
     AttackSwoosh1,
     AttackSwoosh2,
-    AttackSwoosh3
+    AttackSwoosh3,
+    Slash1,
+    Slash2,
+    Slash3,
 }
 
 /// <summary>
