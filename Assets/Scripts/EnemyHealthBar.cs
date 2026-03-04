@@ -126,17 +126,8 @@ public class EnemyHealthBar : MonoBehaviour
         currentHealth = Mathf.Clamp01(initialHealth);
         targetHealth = currentHealth;
         
-        Debug.Log("[EnemyHealthBar] Initialize: enemy=" + enemy.name + ", initialHealth=" + initialHealth.ToString("F2") + ", currentHealth=" + currentHealth.ToString("F2"));
-        
         if (healthBarFill != null)
-        {
             healthBarFill.fillAmount = currentHealth;
-            Debug.Log("[EnemyHealthBar] Initialize - fillAmount set to " + currentHealth.ToString("F2"));
-        }
-        else
-        {
-            Debug.LogWarning("[EnemyHealthBar] Initialize - healthBarFill is NULL for " + enemy.name + "!");
-        }
         
         if (showImmediately)
         {
@@ -151,40 +142,19 @@ public class EnemyHealthBar : MonoBehaviour
     /// <param name="immediate">If true, sets health immediately without lerp animation</param>
     public void SetHealth(float healthPercent, bool immediate = false)
     {
-        try
+        targetHealth = Mathf.Clamp01(healthPercent);
+        
+        // Flash red on damage
+        if (healthPercent < currentHealth && !isDead())
         {
-            targetHealth = Mathf.Clamp01(healthPercent);
-            
-            Debug.Log("[EnemyHealthBar] SetHealth called: healthPercent=" + healthPercent.ToString("F2") + ", targetHealth=" + targetHealth.ToString("F2") + ", currentHealth=" + currentHealth.ToString("F2"));
-            
-            // Always update currentHealth and fillAmount immediately to ensure it displays correctly
-            // Flash red on damage
-            if (healthPercent < currentHealth && !isDead())
-            {
-                Debug.Log("[EnemyHealthBar] Health decreased, triggering damage flash");
-                if (healthBarFill != null)
-                    StartCoroutine(DamageFlash());
-            }
-            
-            currentHealth = targetHealth;
-            Debug.Log("[EnemyHealthBar] currentHealth updated to " + currentHealth.ToString("F2"));
-            
             if (healthBarFill != null)
-            {
-                Debug.Log("[EnemyHealthBar] healthBarFill is valid, about to set fillAmount to " + currentHealth.ToString("F2"));
-                healthBarFill.fillAmount = currentHealth;
-                Debug.Log("[EnemyHealthBar] fillAmount set successfully! Current fillAmount=" + healthBarFill.fillAmount.ToString("F2"));
-            }
-            else
-            {
-                Debug.LogWarning("[EnemyHealthBar] healthBarFill is NULL!");
-            }
+                StartCoroutine(DamageFlash());
         }
-        catch (System.Exception e)
-        {
-            Debug.LogError("[EnemyHealthBar] EXCEPTION in SetHealth: " + e.Message);
-            Debug.LogError("[EnemyHealthBar] Stack trace: " + e.StackTrace);
-        }
+        
+        // Always update currentHealth and fillAmount immediately
+        currentHealth = targetHealth;
+        if (healthBarFill != null)
+            healthBarFill.fillAmount = currentHealth;
     }
 
     /// <summary>
@@ -192,68 +162,37 @@ public class EnemyHealthBar : MonoBehaviour
     /// </summary>
     public void Show()
     {
-        try
+        if (!isVisible)
         {
-            if (!isVisible)
+            isVisible = true;
+            targetAlpha = 1f;
+            
+            // Enable canvas for rendering
+            if (canvas != null)
+                canvas.enabled = true;
+            
+            // Enable raycast blocking during display
+            if (canvasGroup != null)
+                canvasGroup.blocksRaycasts = true;
+            
+            // Enable all Image components
+            if (healthBarFill != null)
             {
-                Debug.Log("[EnemyHealthBar] Show called: currentHealth=" + currentHealth.ToString("F2") + ", targetHealth=" + targetHealth.ToString("F2"));
-                
-                isVisible = true;
-                targetAlpha = 1f;
-                
-                // Enable canvas for rendering
-                if (canvas != null)
-                {
-                    canvas.enabled = true;
-                    Debug.Log("[EnemyHealthBar] Canvas enabled");
-                }
-                else
-                {
-                    Debug.LogWarning("[EnemyHealthBar] Canvas is NULL!");
-                }
-                
-                // Enable raycast blocking during display
-                if (canvasGroup != null)
-                    canvasGroup.blocksRaycasts = true;
-                
-                // Enable all Image components
-                if (healthBarFill != null)
-                {
-                    Debug.Log("[EnemyHealthBar] Enabling healthBarFill, current fillAmount=" + healthBarFill.fillAmount.ToString("F2"));
-                    healthBarFill.enabled = true;
-                    // Ensure fillAmount matches current health
-                    healthBarFill.fillAmount = currentHealth;
-                    Debug.Log("[EnemyHealthBar] Show - fillAmount set to " + currentHealth.ToString("F2") + ", actual fillAmount=" + healthBarFill.fillAmount.ToString("F2"));
-                }
-                else
-                {
-                    Debug.LogWarning("[EnemyHealthBar] healthBarFill is NULL in Show()!");
-                }
-                
-                if (healthBarBackground != null)
-                    healthBarBackground.enabled = true;
-                if (borderImage != null)
-                    borderImage.enabled = true;
-                
-                if (fadeCoroutine != null)
-                    StopCoroutine(fadeCoroutine);
-                
-                fadeCoroutine = StartCoroutine(FadeIn());
-                
-                if (connectionLine != null)
-                    connectionLine.enabled = true;
-                    
-                Debug.Log("[Enemy HealthBar] Show() completed successfully");
+                healthBarFill.enabled = true;
+                healthBarFill.fillAmount = currentHealth;
             }
-            else
-            {
-                Debug.Log("[EnemyHealthBar] Show() called but already visible");
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError("[EnemyHealthBar] EXCEPTION in Show(): " + e.Message);
-            Debug.LogError("[EnemyHealthBar] Stack trace: " + e.StackTrace);
+            if (healthBarBackground != null)
+                healthBarBackground.enabled = true;
+            if (borderImage != null)
+                borderImage.enabled = true;
+            
+            if (fadeCoroutine != null)
+                StopCoroutine(fadeCoroutine);
+            
+            fadeCoroutine = StartCoroutine(FadeIn());
+            
+            if (connectionLine != null)
+                connectionLine.enabled = true;
         }
     }
 

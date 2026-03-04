@@ -875,17 +875,10 @@ public class EnemyPatrol : MonoBehaviour
     {
         isInCombat = true;
         
-        Debug.Log("[EnemyPatrol] " + gameObject.name + " EnterCombat - healthBar is null? " + (healthBar == null));
-        
         // Show health bar when entering combat
         if (healthBar != null)
         {
-            Debug.Log("[EnemyPatrol] " + gameObject.name + " calling healthBar.Show()");
             healthBar.Show();
-        }
-        else
-        {
-            Debug.LogWarning("[EnemyPatrol] " + gameObject.name + " healthBar is NULL in EnterCombat!");
         }
         
         if (GameManager.Instance != null)

@@ -39,7 +39,6 @@ public class EnemyHealthBarManager : MonoBehaviour
     {
         if (healthBarPrefab == null)
         {
-            Debug.Log("Creating default world-space health bar prefab...");
             healthBarPrefab = CreateDefaultHealthBarPrefab();
         }
     }
@@ -63,7 +62,6 @@ public class EnemyHealthBarManager : MonoBehaviour
     {
         // Create a white sprite for all UI images
         Sprite whiteSprite = CreateWhiteSprite();
-        Debug.Log("[HealthBarManager] Created white sprite for health bar images");
         
         // Create main health bar object
         GameObject prefab = new GameObject("EnemyHealthBar_WorldSpace");
@@ -129,8 +127,6 @@ public class EnemyHealthBarManager : MonoBehaviour
         healthImage.fillOrigin = (int)Image.OriginHorizontal.Left;
         healthImage.fillAmount = 1.0f; // Initialize to full
         healthImage.color = new Color(0.2f, 1f, 0.4f); // Bright green
-        
-        Debug.Log("[HealthBarManager] Health bar Image created: sprite=" + (healthImage.sprite != null) + ", type=" + healthImage.type + ", fillAmount=" + healthImage.fillAmount);
 
         // Create line start point (bottom-left corner)
         GameObject lineStartObj = new GameObject("LineStartPoint");
@@ -183,14 +179,10 @@ public class EnemyHealthBarManager : MonoBehaviour
 
         // Initialize health bar with enemy reference and initial health (hidden by default for combat)
         float initialHealthPercent = currentHealth / maxHealth;
-        Debug.Log("[HealthBarManager] RegisterEnemy: enemy=" + enemyTransform.name + ", currentHealth=" + currentHealth + ", maxHealth=" + maxHealth + ", initialHealthPercent=" + initialHealthPercent.ToString("F2") + ", showImmediately=" + showImmediately);
-        
         healthBar.Initialize(enemyTransform, initialHealthPercent, showImmediately);
 
         // Store reference
         activeHealthBars[enemyTransform] = healthBar;
-        
-        Debug.Log("[HealthBarManager] Registered health bar for " + enemyTransform.name + ". Total active: " + activeHealthBars.Count);
 
         return healthBar;
     }
@@ -217,43 +209,27 @@ public class EnemyHealthBarManager : MonoBehaviour
     /// </summary>
     public void UpdateEnemyHealth(Transform enemyTransform, float currentHealth, float maxHealth)
     {
-        try
+        float healthPercent = currentHealth / maxHealth;
+        
+        if (activeHealthBars.ContainsKey(enemyTransform))
         {
-            float healthPercent = currentHealth / maxHealth;
-            Debug.Log("[HealthBarManager] UpdateEnemyHealth: enemy=" + enemyTransform.name + ", health=" + currentHealth + "/" + maxHealth + " (" + healthPercent.ToString("F2") + ")");
-            Debug.Log("[HealthBarManager] activeHealthBars.Count = " + activeHealthBars.Count);
-            bool containsKey = activeHealthBars.ContainsKey(enemyTransform);
-            Debug.Log("[HealthBarManager] ContainsKey check = " + containsKey);
+            EnemyHealthBar healthBar = activeHealthBars[enemyTransform];
             
-            if (containsKey)
+            if (healthBar != null)
             {
-                EnemyHealthBar healthBar = activeHealthBars[enemyTransform];
-                Debug.Log("[HealthBarManager] Found existing health bar for " + enemyTransform.name + ", healthBar is null? " + (healthBar == null));
-                
-                if (healthBar != null)
-                {
-                    Debug.Log("[HealthBarManager] About to call SetHealth(" + healthPercent.ToString("F2") + ")");
-                    healthBar.SetHealth(healthPercent);
-                    Debug.Log("[HealthBarManager] SetHealth completed successfully");
-                }
-                else
-                {
-                    Debug.LogError("[HealthBarManager] Health bar in dictionary is NULL for " + enemyTransform.name + "!");
-                    activeHealthBars.Remove(enemyTransform);
-                    RegisterEnemy(enemyTransform, currentHealth, maxHealth, showImmediately: true);
-                }
+                healthBar.SetHealth(healthPercent);
             }
             else
             {
-                Debug.Log("[HealthBarManager] Creating NEW health bar for " + enemyTransform.name + " (not registered yet)");
-                // Enemy not registered yet, register and show it (taking damage means in combat)
+                // Health bar was destroyed, remove and recreate
+                activeHealthBars.Remove(enemyTransform);
                 RegisterEnemy(enemyTransform, currentHealth, maxHealth, showImmediately: true);
             }
         }
-        catch (System.Exception e)
+        else
         {
-            Debug.LogError("[HealthBarManager] EXCEPTION in UpdateEnemyHealth: " + e.Message);
-            Debug.LogError("[HealthBarManager] Stack trace: " + e.StackTrace);
+            // Enemy not registered yet, register and show it (taking damage means in combat)
+            RegisterEnemy(enemyTransform, currentHealth, maxHealth, showImmediately: true);
         }
     }
 
