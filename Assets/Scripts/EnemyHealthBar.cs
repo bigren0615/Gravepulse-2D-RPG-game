@@ -291,13 +291,13 @@ public class EnemyHealthBar : MonoBehaviour
         while (elapsed < fadeInDuration)
         {
             elapsed += Time.deltaTime;
-            currentAlpha = Mathf.Lerp(startAlpha, 1f, elapsed / fadeInDuration);
+            currentAlpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed / fadeInDuration);
             canvasGroup.alpha = currentAlpha;
             yield return null;
         }
 
-        canvasGroup.alpha = 1f;
-        currentAlpha = 1f;
+        canvasGroup.alpha = targetAlpha;
+        currentAlpha = targetAlpha;
     }
 
     private IEnumerator FadeOut()
@@ -308,13 +308,13 @@ public class EnemyHealthBar : MonoBehaviour
         while (elapsed < fadeOutDuration)
         {
             elapsed += Time.deltaTime;
-            currentAlpha = Mathf.Lerp(startAlpha, 0f, elapsed / fadeOutDuration);
+            currentAlpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed / fadeOutDuration);
             canvasGroup.alpha = currentAlpha;
             yield return null;
         }
 
-        canvasGroup.alpha = 0f;
-        currentAlpha = 0f;
+        canvasGroup.alpha = targetAlpha;
+        currentAlpha = targetAlpha;
         
         HideCompletely();
     }

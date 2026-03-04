@@ -1638,7 +1638,7 @@ MonoBehaviour:
     m_Bits: 512
   player: {fileID: 1098726794}
   maxHealth: 100
-  enemySize: 2
+  enemySize: 1
   damageFlashColor: {r: 1, g: 0, b: 0, a: 1}
   flashDuration: 0.1
   flashCount: 2
