@@ -45,10 +45,26 @@ public class EnemyHealthBarManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Create a simple white sprite for UI elements
+    /// </summary>
+    private Sprite CreateWhiteSprite()
+    {
+        Texture2D texture = new Texture2D(1, 1);
+        texture.SetPixel(0, 0, Color.white);
+        texture.Apply();
+        Sprite sprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 100f);
+        return sprite;
+    }
+
+    /// <summary>
     /// Create a default world-space health bar prefab at runtime
     /// </summary>
     private GameObject CreateDefaultHealthBarPrefab()
     {
+        // Create a white sprite for all UI images
+        Sprite whiteSprite = CreateWhiteSprite();
+        Debug.Log("[HealthBarManager] Created white sprite for health bar images");
+        
         // Create main health bar object
         GameObject prefab = new GameObject("EnemyHealthBar_WorldSpace");
         
@@ -82,6 +98,7 @@ public class EnemyHealthBarManager : MonoBehaviour
         borderRect.offsetMin = new Vector2(-3f, -3f);
         borderRect.offsetMax = new Vector2(3f, 3f);
         Image borderImage = borderObj.AddComponent<Image>();
+        borderImage.sprite = whiteSprite;
         borderImage.color = new Color(1f, 1f, 1f, 0.4f);
 
         // Create background
@@ -93,6 +110,7 @@ public class EnemyHealthBarManager : MonoBehaviour
         bgRect.offsetMin = Vector2.zero;
         bgRect.offsetMax = Vector2.zero;
         Image bgImage = bgObj.AddComponent<Image>();
+        bgImage.sprite = whiteSprite;
         bgImage.color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
 
         // Create health bar fill container
@@ -105,10 +123,14 @@ public class EnemyHealthBarManager : MonoBehaviour
         healthRect.offsetMax = new Vector2(-3f, -3f);
         
         Image healthImage = healthBarObj.AddComponent<Image>();
+        healthImage.sprite = whiteSprite;
         healthImage.type = Image.Type.Filled;
         healthImage.fillMethod = Image.FillMethod.Horizontal;
         healthImage.fillOrigin = (int)Image.OriginHorizontal.Left;
+        healthImage.fillAmount = 1.0f; // Initialize to full
         healthImage.color = new Color(0.2f, 1f, 0.4f); // Bright green
+        
+        Debug.Log("[HealthBarManager] Health bar Image created: sprite=" + (healthImage.sprite != null) + ", type=" + healthImage.type + ", fillAmount=" + healthImage.fillAmount);
 
         // Create line start point (bottom-left corner)
         GameObject lineStartObj = new GameObject("LineStartPoint");
@@ -159,12 +181,16 @@ public class EnemyHealthBarManager : MonoBehaviour
             return null;
         }
 
-        // Initialize health bar with enemy reference (hidden by default for combat)
-        healthBar.Initialize(enemyTransform, showImmediately);
-        healthBar.SetHealth(currentHealth / maxHealth);
+        // Initialize health bar with enemy reference and initial health (hidden by default for combat)
+        float initialHealthPercent = currentHealth / maxHealth;
+        Debug.Log("[HealthBarManager] RegisterEnemy: enemy=" + enemyTransform.name + ", currentHealth=" + currentHealth + ", maxHealth=" + maxHealth + ", initialHealthPercent=" + initialHealthPercent.ToString("F2") + ", showImmediately=" + showImmediately);
+        
+        healthBar.Initialize(enemyTransform, initialHealthPercent, showImmediately);
 
         // Store reference
         activeHealthBars[enemyTransform] = healthBar;
+        
+        Debug.Log("[HealthBarManager] Registered health bar for " + enemyTransform.name + ". Total active: " + activeHealthBars.Count);
 
         return healthBar;
     }
@@ -191,14 +217,43 @@ public class EnemyHealthBarManager : MonoBehaviour
     /// </summary>
     public void UpdateEnemyHealth(Transform enemyTransform, float currentHealth, float maxHealth)
     {
-        if (activeHealthBars.ContainsKey(enemyTransform))
+        try
         {
-            activeHealthBars[enemyTransform].SetHealth(currentHealth / maxHealth);
+            float healthPercent = currentHealth / maxHealth;
+            Debug.Log("[HealthBarManager] UpdateEnemyHealth: enemy=" + enemyTransform.name + ", health=" + currentHealth + "/" + maxHealth + " (" + healthPercent.ToString("F2") + ")");
+            Debug.Log("[HealthBarManager] activeHealthBars.Count = " + activeHealthBars.Count);
+            bool containsKey = activeHealthBars.ContainsKey(enemyTransform);
+            Debug.Log("[HealthBarManager] ContainsKey check = " + containsKey);
+            
+            if (containsKey)
+            {
+                EnemyHealthBar healthBar = activeHealthBars[enemyTransform];
+                Debug.Log("[HealthBarManager] Found existing health bar for " + enemyTransform.name + ", healthBar is null? " + (healthBar == null));
+                
+                if (healthBar != null)
+                {
+                    Debug.Log("[HealthBarManager] About to call SetHealth(" + healthPercent.ToString("F2") + ")");
+                    healthBar.SetHealth(healthPercent);
+                    Debug.Log("[HealthBarManager] SetHealth completed successfully");
+                }
+                else
+                {
+                    Debug.LogError("[HealthBarManager] Health bar in dictionary is NULL for " + enemyTransform.name + "!");
+                    activeHealthBars.Remove(enemyTransform);
+                    RegisterEnemy(enemyTransform, currentHealth, maxHealth, showImmediately: true);
+                }
+            }
+            else
+            {
+                Debug.Log("[HealthBarManager] Creating NEW health bar for " + enemyTransform.name + " (not registered yet)");
+                // Enemy not registered yet, register and show it (taking damage means in combat)
+                RegisterEnemy(enemyTransform, currentHealth, maxHealth, showImmediately: true);
+            }
         }
-        else
+        catch (System.Exception e)
         {
-            // Enemy not registered yet, register and show it (taking damage means in combat)
-            RegisterEnemy(enemyTransform, currentHealth, maxHealth, showImmediately: true);
+            Debug.LogError("[HealthBarManager] EXCEPTION in UpdateEnemyHealth: " + e.Message);
+            Debug.LogError("[HealthBarManager] Stack trace: " + e.StackTrace);
         }
     }
 
