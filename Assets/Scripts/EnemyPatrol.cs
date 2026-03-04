@@ -35,6 +35,10 @@ public class EnemyPatrol : MonoBehaviour
     [Header("Health")]
     public float maxHealth = 100f;
     private float currentHealth;
+    
+    [Header("Health Bar")]
+    [Tooltip("Size category for this enemy's health bar:\n• Small (0.8x0.12) - Tiny enemies\n• Medium (1.2x0.15) - Standard\n• Large (1.6x0.18) - Big enemies\n• Boss (2.4x0.22) - Bosses\n\nAdjust presets in EnemyHealthBarManager")]
+    public EnemySize enemySize = EnemySize.Medium;
 
     [Header("Visual Effects")]
     public Color damageFlashColor = Color.red; // Color to flash when taking damage
@@ -116,7 +120,7 @@ public class EnemyPatrol : MonoBehaviour
         if (EnemyHealthBarManager.Instance != null)
         {
             // Register health bar but don't show it yet (wait for combat)
-            healthBar = EnemyHealthBarManager.Instance.RegisterEnemy(transform, currentHealth, maxHealth, showImmediately: false);
+            healthBar = EnemyHealthBarManager.Instance.RegisterEnemy(transform, currentHealth, maxHealth, enemySize, showImmediately: false);
         }
         else
         {

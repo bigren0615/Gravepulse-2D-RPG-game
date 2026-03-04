@@ -1,6 +1,8 @@
 # 🎯 Enemy Health Bar System - Zenless Zone Zero Style (World Space)
 
 ## ✨ Features
+- **Easy Size Configuration**: Simple presets for Small, Medium, Large, and Boss enemies
+- **Configurable In Inspector**: No coding needed - just select enemy size from dropdown
 - **Floating Above Enemies**: Health bars float above each enemy at their top-right
 - **Combat-Triggered Display**: Health bars only appear when enemies enter combat (detected by player or take damage)
 - **Visual Connection**: Elegant line connects enemy to their health bar
@@ -35,7 +37,64 @@ That's it! When you play:
 - Lines connect each enemy to their health bar
 - Everything is managed automatically
 
+### Step 3: Configure Enemy Sizes (Optional)
+For each enemy prefab or GameObject:
+1. Select the enemy in the scene/prefab
+2. Find the **Enemy Patrol** component
+3. Under **Health Bar** section, set **Enemy Size**:
+   - Small, Medium, Large, or Boss
+4. Tweak global size presets in **EnemyHealthBarManager** if needed
+
+**Testing Tip:** Add the `HealthBarSizeTester` component to an enemy to test sizes in play mode (press T to apply changes).
+
 ## 🎨 Customization
+
+### Configuring Enemy Health Bar Sizes
+
+The system supports **easy size presets** for different enemy types:
+
+#### Using Size Presets (Recommended)
+Select any enemy GameObject and find the **Enemy Patrol** component:
+
+1. Look for the **Health Bar** section
+2. Set **Enemy Size** to:
+   - **Small** - For tiny enemies (slimes, rats, bats)
+   - **Medium** - Standard enemies (default)
+   - **Large** - Big enemies (ogres, golems, bears)
+   - **Boss** - Extra-wide bars for bosses
+   - **Custom** - Use code to specify exact size
+
+#### Adjusting Size Presets Globally
+Select **EnemyHealthBarManager** in your scene:
+
+Under **Size Presets (Width, Height)**:
+- **Small Enemy Size**: Default `(0.8, 0.12)` - Compact bars
+- **Medium Enemy Size**: Default `(1.2, 0.15)` - Standard bars
+- **Large Enemy Size**: Default `(1.6, 0.18)` - Wide bars
+- **Boss Enemy Size**: Default `(2.4, 0.22)` - Extra-wide bars
+
+Change these values to affect **all enemies** of that size category!
+
+#### Using Custom Sizes in Code
+```csharp
+// Register with a preset size
+EnemyHealthBarManager.Instance.RegisterEnemy(
+    transform, 
+    currentHealth, 
+    maxHealth, 
+    EnemySize.Large,  // Use Large preset
+    showImmediately: false
+);
+
+// Register with exact custom size
+EnemyHealthBarManager.Instance.RegisterEnemyWithCustomSize(
+    transform,
+    currentHealth,
+    maxHealth,
+    new Vector2(3.0f, 0.3f),  // Custom width and height
+    showImmediately: false
+);
+```
 
 ### Adjusting Health Bar Position
 Select the **EnemyHealthBarManager** in your scene and modify:
@@ -161,6 +220,26 @@ The line renderer is created automatically. If issues occur:
 1. Ensure `billboardToCamera` is true in `EnemyHealthBar` component
 2. Check that Camera.main is working (main camera tagged properly)
 
+### Enemy sizes not changing in inspector?
+**Check Console Logs:**
+- When enemies spawn, you should see: `"Registering [EnemyName] with health bar size: (X, Y) (Type: Small/Medium/Large/Boss)"`
+- If you don't see these logs, the enemy isn't being registered properly
+
+**Verify Settings:**
+1. Select the enemy GameObject → **Enemy Patrol** component
+2. Check **Health Bar** → **Enemy Size** is set correctly
+3. Select **EnemyHealthBarManager** in scene → verify **Size Presets**
+
+**Quick Test:**
+- Add `HealthBarSizeTester` component to an enemy
+- Run the game and press **T** key to test different sizes live
+
+### Sizes look wrong?
+Final visual size = Preset Size × Canvas World Scale
+- Bars too big? Decrease **Canvas World Scale** (try 0.005)
+- Bars too small? Increase **Canvas World Scale** (try 0.015)
+- Want custom sizes? Edit **Size Presets** in EnemyHealthBarManager
+
 ### Performance concerns?
 The system is highly optimized:
 - Uses efficient dictionary lookups
@@ -185,8 +264,14 @@ For 50+ enemies:
 
 #### EnemyHealthBarManager
 ```csharp
-// Register a new enemy
-RegisterEnemy(Transform enemy, float currentHealth, float maxHealth)
+// Register a new enemy (uses Medium size by default)
+RegisterEnemy(Transform enemy, float currentHealth, float maxHealth, bool showImmediately = false)
+
+// Register with size preset
+RegisterEnemy(Transform enemy, float currentHealth, float maxHealth, EnemySize size, bool showImmediately = false)
+
+// Register with custom size
+RegisterEnemyWithCustomSize(Transform enemy, float currentHealth, float maxHealth, Vector2 customSize, bool showImmediately = false)
 
 // Update enemy health
 UpdateEnemyHealth(Transform enemy, float currentHealth, float maxHealth)
@@ -196,6 +281,18 @@ UnregisterEnemy(Transform enemy)
 
 // Clear all health bars
 ClearAllHealthBars()
+```
+
+#### EnemySize Enum
+```csharp
+public enum EnemySize
+{
+    Small,   // Small enemies (0.8 x 0.12 default)
+    Medium,  // Standard enemies (1.2 x 0.15 default)
+    Large,   // Large enemies (1.6 x 0.18 default)
+    Boss,    // Boss enemies (2.4 x 0.22 default)
+    Custom   // Use custom size
+}
 ```
 
 #### EnemyHealthBar

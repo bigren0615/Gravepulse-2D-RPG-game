@@ -200,6 +200,10 @@ MonoBehaviour:
   offsetFromEnemy: {x: 0.8, y: 1, z: 0}
   healthBarWorldSize: {x: 1.2, y: 0.15}
   canvasWorldScale: 0.01
+  smallEnemySize: {x: 0.8, y: 0.12}
+  mediumEnemySize: {x: 1.2, y: 0.15}
+  largeEnemySize: {x: 1.6, y: 0.18}
+  bossEnemySize: {x: 2.4, y: 0.22}
 --- !u!4 &313624613
 Transform:
   m_ObjectHideFlags: 0
@@ -1302,6 +1306,7 @@ MonoBehaviour:
     m_Bits: 512
   player: {fileID: 1098726794}
   maxHealth: 100
+  enemySize: 1
   damageFlashColor: {r: 1, g: 0, b: 0, a: 1}
   flashDuration: 0.1
   flashCount: 2
@@ -1633,6 +1638,7 @@ MonoBehaviour:
     m_Bits: 512
   player: {fileID: 1098726794}
   maxHealth: 100
+  enemySize: 2
   damageFlashColor: {r: 1, g: 0, b: 0, a: 1}
   flashDuration: 0.1
   flashCount: 2

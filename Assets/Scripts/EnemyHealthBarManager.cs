@@ -3,6 +3,18 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
+/// Enemy size categories for health bar scaling
+/// </summary>
+public enum EnemySize
+{
+    Small,      // Small enemies (slimes, rats, etc.)
+    Medium,     // Standard enemies (default)
+    Large,      // Large enemies (ogres, golems, etc.)
+    Boss,       // Boss enemies (extra wide health bars)
+    Custom      // Use custom size
+}
+
+/// <summary>
 /// Manages all enemy health bars
 /// Creates world-space health bars that float above each enemy (Zenless Zone Zero style)
 /// </summary>
@@ -15,8 +27,21 @@ public class EnemyHealthBarManager : MonoBehaviour
     
     [Header("World Space Settings")]
     public Vector3 offsetFromEnemy = new Vector3(0.8f, 1.2f, 0f); // Top-right offset from enemy
-    public Vector2 healthBarWorldSize = new Vector2(1.2f, 0.15f); // Size in world units
+    public Vector2 healthBarWorldSize = new Vector2(1.2f, 0.15f); // Default size (Medium)
     public float canvasWorldScale = 0.01f; // Scale factor for canvas
+    
+    [Header("Size Presets (Width, Height)")]
+    [Tooltip("Health bar size for small enemies (slimes, rats, etc.) - Default: (0.8, 0.12)")]
+    public Vector2 smallEnemySize = new Vector2(0.8f, 0.12f);
+    
+    [Tooltip("Health bar size for medium/standard enemies - Default: (1.2, 0.15)")]
+    public Vector2 mediumEnemySize = new Vector2(1.2f, 0.15f);
+    
+    [Tooltip("Health bar size for large enemies (ogres, golems, etc.) - Default: (1.6, 0.18)")]
+    public Vector2 largeEnemySize = new Vector2(1.6f, 0.18f);
+    
+    [Tooltip("Health bar size for boss enemies - Default: (2.4, 0.22)")]
+    public Vector2 bossEnemySize = new Vector2(2.4f, 0.22f);
     
     private Dictionary<Transform, EnemyHealthBar> activeHealthBars = new Dictionary<Transform, EnemyHealthBar>();
     private Camera mainCamera;
@@ -56,9 +81,39 @@ public class EnemyHealthBarManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Get the size for a specific enemy type
+    /// </summary>
+    private Vector2 GetSizeForEnemyType(EnemySize enemySize, Vector2? customSize = null)
+    {
+        switch (enemySize)
+        {
+            case EnemySize.Small:
+                return smallEnemySize;
+            case EnemySize.Medium:
+                return mediumEnemySize;
+            case EnemySize.Large:
+                return largeEnemySize;
+            case EnemySize.Boss:
+                return bossEnemySize;
+            case EnemySize.Custom:
+                return customSize ?? mediumEnemySize;
+            default:
+                return mediumEnemySize;
+        }
+    }
+
+    /// <summary>
     /// Create a default world-space health bar prefab at runtime
     /// </summary>
     private GameObject CreateDefaultHealthBarPrefab()
+    {
+        return CreateHealthBarPrefabWithSize(healthBarWorldSize);
+    }
+
+    /// <summary>
+    /// Create a health bar prefab with specific size
+    /// </summary>
+    private GameObject CreateHealthBarPrefabWithSize(Vector2 barSize)
     {
         // Create a white sprite for all UI images
         Sprite whiteSprite = CreateWhiteSprite();
@@ -77,9 +132,12 @@ public class EnemyHealthBarManager : MonoBehaviour
         // Add graphic raycaster (for potential UI interaction)
         GraphicRaycaster raycaster = prefab.AddComponent<GraphicRaycaster>();
         
-        // Set up RectTransform
+        // Set up RectTransform - convert world size to pixel size based on scale
         RectTransform rectTransform = prefab.GetComponent<RectTransform>();
-        rectTransform.sizeDelta = new Vector2(120f, 18f); // Pixel size (will be scaled)
+        // Calculate pixel size: world size / canvas scale
+        float pixelWidth = barSize.x / canvasWorldScale;
+        float pixelHeight = barSize.y / canvasWorldScale;
+        rectTransform.sizeDelta = new Vector2(pixelWidth, pixelHeight);
         
         // Scale canvas to world size
         prefab.transform.localScale = Vector3.one * canvasWorldScale;
@@ -147,16 +205,44 @@ public class EnemyHealthBarManager : MonoBehaviour
         healthBarComponent.canvas = canvas; // Set canvas reference
         healthBarComponent.lineStartPoint = lineStartObj.transform;
         healthBarComponent.offsetFromEnemy = offsetFromEnemy;
-        healthBarComponent.healthBarSize = healthBarWorldSize;
+        healthBarComponent.healthBarSize = barSize;
 
         return prefab;
     }
 
     /// <summary>
-    /// Register an enemy to have a health bar
+    /// Register an enemy to have a health bar (uses Medium size by default)
     /// </summary>
     /// <param name="showImmediately">Whether to show the health bar immediately (false = wait for combat)</param>
     public EnemyHealthBar RegisterEnemy(Transform enemyTransform, float currentHealth, float maxHealth, bool showImmediately = false)
+    {
+        return RegisterEnemy(enemyTransform, currentHealth, maxHealth, EnemySize.Medium, showImmediately);
+    }
+
+    /// <summary>
+    /// Register an enemy to have a health bar with specific size preset
+    /// </summary>
+    /// <param name="enemySize">Size category for the enemy (Small, Medium, Large, Boss)</param>
+    /// <param name="showImmediately">Whether to show the health bar immediately (false = wait for combat)</param>
+    public EnemyHealthBar RegisterEnemy(Transform enemyTransform, float currentHealth, float maxHealth, EnemySize enemySize, bool showImmediately = false)
+    {
+        return RegisterEnemyWithCustomSize(enemyTransform, currentHealth, maxHealth, enemySize, null, showImmediately);
+    }
+
+    /// <summary>
+    /// Register an enemy to have a health bar with custom size
+    /// </summary>
+    /// <param name="customSize">Custom size for the health bar (use EnemySize.Custom)</param>
+    /// <param name="showImmediately">Whether to show the health bar immediately (false = wait for combat)</param>
+    public EnemyHealthBar RegisterEnemyWithCustomSize(Transform enemyTransform, float currentHealth, float maxHealth, Vector2 customSize, bool showImmediately = false)
+    {
+        return RegisterEnemyWithCustomSize(enemyTransform, currentHealth, maxHealth, EnemySize.Custom, customSize, showImmediately);
+    }
+
+    /// <summary>
+    /// Internal method to register enemy with full control over size
+    /// </summary>
+    private EnemyHealthBar RegisterEnemyWithCustomSize(Transform enemyTransform, float currentHealth, float maxHealth, EnemySize enemySize, Vector2? customSize, bool showImmediately = false)
     {
         if (activeHealthBars.ContainsKey(enemyTransform))
         {
@@ -164,8 +250,13 @@ public class EnemyHealthBarManager : MonoBehaviour
             return activeHealthBars[enemyTransform];
         }
 
-        // Create new health bar in world space
-        GameObject healthBarObj = Instantiate(healthBarPrefab);
+        // Get the appropriate size for this enemy
+        Vector2 barSize = GetSizeForEnemyType(enemySize, customSize);
+        
+        // Create new health bar with the appropriate size
+        GameObject prefabToUse = CreateHealthBarPrefabWithSize(barSize);
+        GameObject healthBarObj = Instantiate(prefabToUse);
+        Destroy(prefabToUse); // Clean up the temporary prefab
         healthBarObj.transform.SetParent(transform); // Parent to manager for organization
         
         EnemyHealthBar healthBar = healthBarObj.GetComponent<EnemyHealthBar>();
