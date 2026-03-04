@@ -64,6 +64,30 @@ public class EnemyController : MonoBehaviour
         enemyAI = GetComponent<EnemyAI>();
         enemyHealth = GetComponent<EnemyHealth>();
         enemyCombat = GetComponent<EnemyCombat>();
+        
+        // Validate enemy layer configuration
+        ValidateEnemyLayer();
+    }
+    
+    private void ValidateEnemyLayer()
+    {
+        // Check if enemyLayer is set (not 0 which means "Nothing")
+        if (enemyLayer.value == 0)
+        {
+            Debug.LogWarning($"[{gameObject.name}] Enemy Layer is not set! Enemies may stack together. Please set the Enemy Layer in the Inspector to the layer your enemies are on.");
+        }
+        
+        // Also check if THIS enemy is on a layer included in the enemyLayer mask
+        int myLayer = gameObject.layer;
+        if (!IsLayerInMask(myLayer, enemyLayer))
+        {
+            Debug.LogWarning($"[{gameObject.name}] This enemy is on layer '{LayerMask.LayerToName(myLayer)}' but enemyLayer mask doesn't include it. Separation won't work!");
+        }
+    }
+    
+    private bool IsLayerInMask(int layer, LayerMask layerMask)
+    {
+        return layerMask == (layerMask | (1 << layer));
     }
 
     /// <summary>
@@ -83,8 +107,26 @@ public class EnemyController : MonoBehaviour
         }
 
         // Apply enemy separation to prevent stacking
+        // Important: Don't normalize after adding separation - we want to preserve separation strength!
         Vector2 separationVector = GetSeparationVector();
-        finalDirection = (finalDirection + separationVector).normalized;
+        
+        if (separationVector.sqrMagnitude > 0.01f)
+        {
+            // Add separation force without normalizing to maintain its strength
+            finalDirection = finalDirection.normalized + separationVector;
+            
+            // Only normalize if the combined vector is too large (> 2.0)
+            // This preserves separation strength while preventing excessive movement
+            if (finalDirection.magnitude > 2.0f)
+            {
+                finalDirection = finalDirection.normalized;
+            }
+        }
+        else
+        {
+            // No separation needed, just use normalized direction
+            finalDirection = finalDirection.normalized;
+        }
 
         // Apply movement
         Vector3 movement = new Vector3(finalDirection.x, finalDirection.y, 0f) * speed * Time.deltaTime;
