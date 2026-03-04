@@ -6,8 +6,8 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    // Track all enemies currently in combat
-    private HashSet<EnemyPatrol> enemiesInCombat = new HashSet<EnemyPatrol>();
+    // Track all enemies currently in combat (using GameObject for compatibility with new component system)
+    private HashSet<GameObject> enemiesInCombat = new HashSet<GameObject>();
     private bool isBattleMusicPlaying = false;
 
     private void Awake()
@@ -30,7 +30,7 @@ public class GameManager : MonoBehaviour
     }
 
     // Called when an enemy enters combat (hit by player or chasing)
-    public void EnterCombat(EnemyPatrol enemy)
+    public void EnterCombat(GameObject enemy)
     {
         if (enemy == null) return;
         
@@ -47,7 +47,7 @@ public class GameManager : MonoBehaviour
     }
 
     // Called when an enemy exits combat (died or stopped chasing)
-    public void ExitCombat(EnemyPatrol enemy)
+    public void ExitCombat(GameObject enemy)
     {
         if (enemy == null) return;
         

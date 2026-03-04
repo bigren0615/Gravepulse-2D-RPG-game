@@ -98,7 +98,7 @@ public class HealthBarSystemValidator : MonoBehaviour
 
     private void ValidateEnemies()
     {
-        EnemyPatrol[] enemies = FindObjectsOfType<EnemyPatrol>();
+        EnemyHealth[] enemies = FindObjectsOfType<EnemyHealth>();
         
         if (enemies.Length == 0)
         {
@@ -110,7 +110,7 @@ public class HealthBarSystemValidator : MonoBehaviour
         successes.Add($"✅ Found {enemies.Length} enemy/enemies in scene");
 
         // Check if enemies have required components
-        foreach (EnemyPatrol enemy in enemies)
+        foreach (EnemyHealth enemy in enemies)
         {
             if (enemy.GetComponent<SpriteRenderer>() == null)
             {
@@ -126,7 +126,7 @@ public class HealthBarSystemValidator : MonoBehaviour
         {
             typeof(EnemyHealthBar),
             typeof(EnemyHealthBarManager),
-            typeof(EnemyPatrol),
+            typeof(EnemyHealth),
             typeof(HealthBarSetupHelper)
         };
 
@@ -145,12 +145,12 @@ public class HealthBarSystemValidator : MonoBehaviour
 
     private void ValidateIntegration()
     {
-        // Check if EnemyPatrol has the health bar code integrated
-        EnemyPatrol[] enemies = FindObjectsOfType<EnemyPatrol>();
+        // Check if EnemyHealth has the health bar code integrated
+        EnemyHealth[] enemies = FindObjectsOfType<EnemyHealth>();
         
         if (enemies.Length > 0)
         {
-            EnemyPatrol testEnemy = enemies[0];
+            EnemyHealth testEnemy = enemies[0];
             
             // Verify health system exists
             if (testEnemy.maxHealth > 0)
@@ -226,7 +226,7 @@ public class HealthBarSystemValidator : MonoBehaviour
     [ContextMenu("Test Damage Enemy")]
     public void TestDamageEnemy()
     {
-        EnemyPatrol[] enemies = FindObjectsOfType<EnemyPatrol>();
+        EnemyHealth[] enemies = FindObjectsOfType<EnemyHealth>();
         
         if (enemies.Length == 0)
         {
@@ -234,11 +234,11 @@ public class HealthBarSystemValidator : MonoBehaviour
             return;
         }
 
-        EnemyPatrol testEnemy = enemies[0];
+        EnemyHealth testEnemy = enemies[0];
         float damageAmount = 25f;
         
         Debug.Log($"🔪 Testing damage on {testEnemy.gameObject.name}");
-        Debug.Log($"   Before HP: {testEnemy.maxHealth}");
+        Debug.Log($"   Before HP: {testEnemy.GetMaxHealth()}");
         
         testEnemy.TakeDamage(damageAmount);
         
@@ -264,7 +264,7 @@ public class HealthBarSystemValidator : MonoBehaviour
             Debug.LogWarning("No manager found");
         }
 
-        EnemyPatrol[] enemies = FindObjectsOfType<EnemyPatrol>();
+        EnemyHealth[] enemies = FindObjectsOfType<EnemyHealth>();
         Debug.Log($"Enemies in scene: {enemies.Length}");
 
         Debug.Log("════════════════════════════════════════════════");

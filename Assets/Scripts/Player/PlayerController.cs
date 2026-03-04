@@ -269,7 +269,7 @@ public class PlayerController : MonoBehaviour
             if (angleToEnemy <= attackAngle / 2f)
             {
                 // Enemy is within attack arc - deal damage
-                EnemyPatrol enemyScript = enemy.GetComponent<EnemyPatrol>();
+                EnemyHealth enemyScript = enemy.GetComponent<EnemyHealth>();
                 if (enemyScript != null)
                 {
                     enemyScript.TakeDamage(attackDamage);

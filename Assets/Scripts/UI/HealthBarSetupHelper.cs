@@ -41,7 +41,7 @@ public class HealthBarSetupHelper : MonoBehaviour
     [ContextMenu("Force Re-Register All Enemies")]
     public void ForceRegisterAllEnemies()
     {
-        EnemyPatrol[] enemies = FindObjectsOfType<EnemyPatrol>();
+        EnemyHealth[] enemies = FindObjectsOfType<EnemyHealth>();
         
         if (EnemyHealthBarManager.Instance == null)
         {
@@ -49,7 +49,7 @@ public class HealthBarSetupHelper : MonoBehaviour
             return;
         }
 
-        foreach (EnemyPatrol enemy in enemies)
+        foreach (EnemyHealth enemy in enemies)
         {
             // This will be handled by the enemy's Start method
             Debug.Log($"Enemy {enemy.gameObject.name} will register on next frame");
