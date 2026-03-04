@@ -56,14 +56,17 @@ public class DamageText : MonoBehaviour
     }
 
     /// <summary>
-    /// Initialize and display damage text
+    /// Initialize and display damage text with optional gradient
     /// </summary>
-    public void Show(float damageAmount, Vector3 worldPosition, Color color)
+    public void Show(float damageAmount, Vector3 worldPosition, Color topColor, Color bottomColor)
     {
         // Set text
         textMesh.text = Mathf.RoundToInt(damageAmount).ToString();
-        textMesh.color = color;
-        originalColor = color;
+        
+        // Apply gradient (ZZZ style)
+        textMesh.enableVertexGradient = true;
+        textMesh.colorGradient = new VertexGradient(topColor, topColor, bottomColor, bottomColor);
+        originalColor = topColor; // Use top color for fade calculations
         
         // Set position
         transform.position = worldPosition;
@@ -79,6 +82,14 @@ public class DamageText : MonoBehaviour
             StopAllCoroutines();
         }
         StartCoroutine(AnimateText());
+    }
+    
+    /// <summary>
+    /// Show with solid color (backwards compatibility)
+    /// </summary>
+    public void Show(float damageAmount, Vector3 worldPosition, Color color)
+    {
+        Show(damageAmount, worldPosition, color, color);
     }
     
     private IEnumerator AnimateText()
@@ -122,9 +133,22 @@ public class DamageText : MonoBehaviour
                 alpha = 1f - fadeT;
             }
             
-            Color newColor = originalColor;
-            newColor.a = alpha;
-            textMesh.color = newColor;
+            // Apply alpha to gradient
+            if (textMesh.enableVertexGradient)
+            {
+                VertexGradient gradient = textMesh.colorGradient;
+                gradient.topLeft.a = alpha;
+                gradient.topRight.a = alpha;
+                gradient.bottomLeft.a = alpha;
+                gradient.bottomRight.a = alpha;
+                textMesh.colorGradient = gradient;
+            }
+            else
+            {
+                Color newColor = originalColor;
+                newColor.a = alpha;
+                textMesh.color = newColor;
+            }
             
             yield return null;
         }

@@ -14,11 +14,17 @@ public class DamageTextManager : MonoBehaviour
     public GameObject damageTextPrefab;
 
     [Header("ZZZ Style Settings")]
-    [Tooltip("Yellow/gold color for damage numbers (Zenless Zone Zero style)")]
-    public Color damageColor = new Color(1f, 0.9f, 0.2f); // Bright yellow/gold
+    [Tooltip("Top color for gradient (Zenless Zone Zero style)")]
+    public Color damageColorTop = new Color(1f, 0.95f, 0.4f); // Bright yellow/white
     
-    [Tooltip("Critical hit color (optional)")]
-    public Color criticalColor = new Color(1f, 0.5f, 0f); // Orange
+    [Tooltip("Bottom color for gradient (Zenless Zone Zero style)")]
+    public Color damageColorBottom = new Color(1f, 0.75f, 0.1f); // Deep yellow/gold
+    
+    [Tooltip("Critical hit top color (optional)")]
+    public Color criticalColorTop = new Color(1f, 0.6f, 0f); // Bright orange
+    
+    [Tooltip("Critical hit bottom color (optional)")]
+    public Color criticalColorBottom = new Color(1f, 0.3f, 0f); // Deep orange/red
 
     [Header("Pooling")]
     [Tooltip("Initial pool size")]
@@ -98,12 +104,13 @@ public class DamageTextManager : MonoBehaviour
         spawnPosition.y += verticalOffset;
         spawnPosition.x += Random.Range(-horizontalSpread, horizontalSpread);
 
-        // Choose color
-        Color color = isCritical ? criticalColor : damageColor;
+        // Choose gradient colors
+        Color topColor = isCritical ? criticalColorTop : damageColorTop;
+        Color bottomColor = isCritical ? criticalColorBottom : damageColorBottom;
 
         // Activate and show
         damageText.gameObject.SetActive(true);
-        damageText.Show(damageAmount, spawnPosition, color);
+        damageText.Show(damageAmount, spawnPosition, topColor, bottomColor);
     }
 
     /// <summary>
