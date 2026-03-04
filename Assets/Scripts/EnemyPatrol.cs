@@ -77,6 +77,9 @@ public class EnemyPatrol : MonoBehaviour
     private bool hasPlayedSpottedSound = false;
     private bool hasPlayedQuestionBubble = false;
 
+    // Health bar tracking
+    private EnemyHealthBar healthBar;
+
     void Start()
     {
         currentHealth = maxHealth; // Initialize health
@@ -102,6 +105,22 @@ public class EnemyPatrol : MonoBehaviour
             player = GameObject.FindGameObjectWithTag("Player");
             if (player == null)
                 Debug.LogWarning("No player found! Assign in Inspector or tag the player as 'Player'.");
+        }
+
+        // Register with health bar manager
+        RegisterHealthBar();
+    }
+
+    private void RegisterHealthBar()
+    {
+        if (EnemyHealthBarManager.Instance != null)
+        {
+            // Register health bar but don't show it yet (wait for combat)
+            healthBar = EnemyHealthBarManager.Instance.RegisterEnemy(transform, currentHealth, maxHealth, showImmediately: false);
+        }
+        else
+        {
+            Debug.LogWarning("EnemyHealthBarManager not found in scene! Health bars will not appear.");
         }
     }
 
@@ -732,6 +751,9 @@ public class EnemyPatrol : MonoBehaviour
         currentHealth -= damage;
         Debug.Log(gameObject.name + " took " + damage + " damage! Current HP: " + currentHealth + "/" + maxHealth);
 
+        // Update health bar
+        UpdateHealthBar();
+
         // Flash red to show damage
         if (!isFlashing)
         {
@@ -748,6 +770,14 @@ public class EnemyPatrol : MonoBehaviour
         {
             currentHealth = 0;
             Die();
+        }
+    }
+
+    private void UpdateHealthBar()
+    {
+        if (EnemyHealthBarManager.Instance != null)
+        {
+            EnemyHealthBarManager.Instance.UpdateEnemyHealth(transform, currentHealth, maxHealth);
         }
     }
 
@@ -781,6 +811,12 @@ public class EnemyPatrol : MonoBehaviour
         isDead = true;
 
         Debug.Log(gameObject.name + " has died!");
+        
+        // Unregister health bar
+        if (EnemyHealthBarManager.Instance != null)
+        {
+            EnemyHealthBarManager.Instance.UnregisterEnemy(transform);
+        }
         
         // Exit combat when dying
         if (isInCombat)
@@ -838,6 +874,13 @@ public class EnemyPatrol : MonoBehaviour
     private void EnterCombat()
     {
         isInCombat = true;
+        
+        // Show health bar when entering combat
+        if (healthBar != null)
+        {
+            healthBar.Show();
+        }
+        
         if (GameManager.Instance != null)
         {
             GameManager.Instance.EnterCombat(this);
@@ -856,6 +899,12 @@ public class EnemyPatrol : MonoBehaviour
 
     private void OnDestroy()
     {
+        // Unregister health bar when destroyed
+        if (EnemyHealthBarManager.Instance != null)
+        {
+            EnemyHealthBarManager.Instance.UnregisterEnemy(transform);
+        }
+        
         // Make sure to exit combat when destroyed
         if (isInCombat && GameManager.Instance != null)
         {

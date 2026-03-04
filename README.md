@@ -7,7 +7,7 @@
 ![Unity](https://img.shields.io/badge/Unity-2022+-black?logo=unity&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?logo=c-sharp&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-In%20Development-orange)
-![Progress](https://img.shields.io/badge/Overall%20Progress-65%25-blue)
+![Progress](https://img.shields.io/badge/Overall%20Progress-70%25-blue)
 
 > **Goal:** Real-time physics-driven top-down action RPG with fluid combat, dodge mechanics, and responsive input.
 
@@ -29,7 +29,7 @@
 ## 📊 Overall Progress
 
 ```
-Total Completion  █████████████░░░░░░░  65%
+Total Completion  ██████████████░░░░░░  70%
 ```
 
 ---
@@ -300,6 +300,36 @@ public class PlayerController : MonoBehaviour
 
 ---
 
+### 🎯 Phase 10.5 — Enemy Health Bar System (Zenless Zone Zero Style)
+```
+██████████████████████  100%  ✅ COMPLETE
+```
+- [x] `EnemyHealthBar.cs` — Individual health bar UI component with animations
+- [x] `EnemyHealthBarManager.cs` — Singleton manager for all enemy health bars
+- [x] `HealthBarSetupHelper.cs` — Auto-setup utility for easy scene configuration
+- [x] Line connectors from enemies to health bars (LineRenderer)
+- [x] World-space floating health bars above each enemy (top-right offset)
+- [x] Combat-triggered visibility (health bars only show during combat)
+- [x] Smooth fade in/out animations
+- [x] Damage flash feedback (red flash on hit)
+- [x] Auto-registration system (enemies register on spawn)
+- [x] Auto-cleanup (health bars removed when enemy dies)
+- [x] Resolution-independent UI (CanvasScaler)
+- [x] Editor menu integration for easy setup
+- [x] Comprehensive documentation (`HEALTHBAR_SETUP.md`)
+
+**Visual Features:**
+- Health bars only appear during combat (enemy detection or taking damage)
+- Health bars float above each enemy individually (Zenless Zone Zero inspired)
+- Elegant line connectors from enemy to their health bar
+- Smooth health transitions and fade effects
+- Billboard effect (health bars always face camera)
+- Customizable position offset, colors, and scale
+
+**Setup:** See `HEALTHBAR_SETUP.md` for full setup guide and customization options.
+
+---
+
 ## ⚔️ Core Feature Status
 
 ### 🕹️ Movement
@@ -400,12 +430,15 @@ public class PlayerController : MonoBehaviour
 
 ### 🖥️ UI / Menu
 ```
-░░░░░░░░░░░░░░░░░░░░░░    0%  ❌ NOT STARTED
+████████████░░░░░░░░░░   55%  🔄 IN PROGRESS
 ```
 | Feature | Status |
 |---|:---:|
+| Enemy Health Bars (Zenless Zone Zero style) | ✅ |
+| Health bar line connectors | ✅ |
+| Health bar manager system | ✅ |
 | Main Menu screen | ❌ |
-| HUD (HP bar, stamina/energy bar) | ❌ |
+| HUD (Player HP bar, stamina/energy bar) | ❌ |
 | Pause Menu | ❌ |
 | Game Over screen | ❌ |
 
@@ -436,7 +469,7 @@ public class PlayerController : MonoBehaviour
 | **Phase 11** | Combat Polish (knockback, hitstop, I-frames) | 🔴 High |
 | **Phase 12** | Enemy Attack Back (deal damage to player) | 🔴 High |
 | **Phase 13** | Player HP / Hurt / Death system | 🔴 High |
-| **Phase 14** | HUD & UI (HP bar, menus) | 🟠 Medium |
+| **Phase 14** | ~~Enemy Health Bars~~ ✅ → Player HUD (HP bar, menus) | 🟠 Medium |
 | **Phase 15** | Multiple enemy types | 🟠 Medium |
 | **Phase 16** | ~~Sound Effects~~ ✅ → UI interaction SFX | 🟡 Low |
 | **Phase 17** | Polish (combo system, screenshake, VFX) | 🟡 Low |
