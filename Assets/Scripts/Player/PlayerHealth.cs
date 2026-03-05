@@ -69,6 +69,12 @@ public class PlayerHealth : MonoBehaviour
         currentHealth -= damage;
         Debug.Log($"Player took {damage} damage! Current HP: {currentHealth}/{maxHealth}");
 
+        // Show damage text (red gradient for player damage)
+        if (DamageTextManager.Instance != null)
+        {
+            DamageTextManager.Instance.ShowDamage(damage, transform.position, DamageType.Player);
+        }
+
         // Play damage sound effect
         if (AudioManager.Instance != null)
         {

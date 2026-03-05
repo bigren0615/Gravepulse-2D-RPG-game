@@ -153,10 +153,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   damageTextPrefab: {fileID: 2310015982556455010, guid: bf761de63fbf2e041923421d6c879513, type: 3}
-  damageColorTop: {r: 0.90300006, g: 0.8584992, b: 0.37926003, a: 1}
-  damageColorBottom: {r: 0.90300006, g: 0.6763647, b: 0.09207059, a: 1}
-  criticalColorTop: {r: 0.90300006, g: 0.47306237, b: 0.25726983, a: 1}
-  criticalColorBottom: {r: 0.898, g: 0.26763922, b: 0, a: 1}
+  damageColorTop: {r: 0.898, g: 0.85135067, b: 0.379026, a: 1}
+  damageColorBottom: {r: 0.761, g: 0.5648047, b: 0.07728906, a: 1}
+  criticalColorTop: {r: 0.898, g: 0.47232464, b: 0.2565714, a: 1}
+  criticalColorBottom: {r: 0.727, g: 0.21582812, b: 0, a: 1}
+  playerDamageColorTop: {r: 0.90300006, g: 0.2680781, b: 0.2680781, a: 1}
+  playerDamageColorBottom: {r: 0.59099996, g: 0, b: 0, a: 1}
   initialPoolSize: 10
   maxPoolSize: 30
   verticalOffset: 0.2
@@ -4552,6 +4554,10 @@ PrefabInstance:
     - target: {fileID: 2578687424602656689, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
       propertyPath: chaseRadius
       value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3659223117675410726, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
+      propertyPath: attackDamage
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3659223117675410726, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
       propertyPath: combatModeRadius

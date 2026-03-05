@@ -2,6 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
+/// Type of damage for determining color gradient
+/// </summary>
+public enum DamageType
+{
+    Enemy,      // Damage to enemies (yellow gradient)
+    Player,     // Damage to player (red gradient)
+    Critical    // Critical hits (orange gradient)
+}
+
+/// <summary>
 /// Manages damage text pooling and spawning
 /// Singleton pattern for easy access from anywhere
 /// </summary>
@@ -13,11 +23,11 @@ public class DamageTextManager : MonoBehaviour
     [Tooltip("Drag the DamageText prefab here")]
     public GameObject damageTextPrefab;
 
-    [Header("ZZZ Style Settings")]
-    [Tooltip("Top color for gradient (Zenless Zone Zero style)")]
+    [Header("ZZZ Style Settings - Enemy Damage")]
+    [Tooltip("Top color for gradient when enemy takes damage (Zenless Zone Zero style)")]
     public Color damageColorTop = new Color(1f, 0.95f, 0.4f); // Bright yellow/white
     
-    [Tooltip("Bottom color for gradient (Zenless Zone Zero style)")]
+    [Tooltip("Bottom color for gradient when enemy takes damage (Zenless Zone Zero style)")]
     public Color damageColorBottom = new Color(1f, 0.75f, 0.1f); // Deep yellow/gold
     
     [Tooltip("Critical hit top color (optional)")]
@@ -25,6 +35,13 @@ public class DamageTextManager : MonoBehaviour
     
     [Tooltip("Critical hit bottom color (optional)")]
     public Color criticalColorBottom = new Color(1f, 0.3f, 0f); // Deep orange/red
+    
+    [Header("ZZZ Style Settings - Player Damage")]
+    [Tooltip("Top color for gradient when player takes damage")]
+    public Color playerDamageColorTop = new Color(1f, 0.3f, 0.3f); // Bright red
+    
+    [Tooltip("Bottom color for gradient when player takes damage")]
+    public Color playerDamageColorBottom = new Color(0.8f, 0f, 0f); // Deep red
 
     [Header("Pooling")]
     [Tooltip("Initial pool size")]
@@ -92,6 +109,15 @@ public class DamageTextManager : MonoBehaviour
     /// </summary>
     public void ShowDamage(float damageAmount, Vector3 worldPosition, bool isCritical = false)
     {
+        DamageType damageType = isCritical ? DamageType.Critical : DamageType.Enemy;
+        ShowDamage(damageAmount, worldPosition, damageType);
+    }
+
+    /// <summary>
+    /// Show damage text at a world position with specified damage type
+    /// </summary>
+    public void ShowDamage(float damageAmount, Vector3 worldPosition, DamageType damageType)
+    {
         DamageText damageText = GetFromPool();
         if (damageText == null)
         {
@@ -104,9 +130,46 @@ public class DamageTextManager : MonoBehaviour
         spawnPosition.y += verticalOffset;
         spawnPosition.x += Random.Range(-horizontalSpread, horizontalSpread);
 
-        // Choose gradient colors
-        Color topColor = isCritical ? criticalColorTop : damageColorTop;
-        Color bottomColor = isCritical ? criticalColorBottom : damageColorBottom;
+        // Choose gradient colors based on damage type
+        Color topColor, bottomColor;
+        switch (damageType)
+        {
+            case DamageType.Player:
+                topColor = playerDamageColorTop;
+                bottomColor = playerDamageColorBottom;
+                break;
+            case DamageType.Critical:
+                topColor = criticalColorTop;
+                bottomColor = criticalColorBottom;
+                break;
+            case DamageType.Enemy:
+            default:
+                topColor = damageColorTop;
+                bottomColor = damageColorBottom;
+                break;
+        }
+
+        // Activate and show
+        damageText.gameObject.SetActive(true);
+        damageText.Show(damageAmount, spawnPosition, topColor, bottomColor);
+    }
+
+    /// <summary>
+    /// Show damage text with custom gradient colors
+    /// </summary>
+    public void ShowDamageCustom(float damageAmount, Vector3 worldPosition, Color topColor, Color bottomColor)
+    {
+        DamageText damageText = GetFromPool();
+        if (damageText == null)
+        {
+            Debug.LogWarning("Failed to get damage text from pool!");
+            return;
+        }
+
+        // Apply offset and random spread
+        Vector3 spawnPosition = worldPosition;
+        spawnPosition.y += verticalOffset;
+        spawnPosition.x += Random.Range(-horizontalSpread, horizontalSpread);
 
         // Activate and show
         damageText.gameObject.SetActive(true);
