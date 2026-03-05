@@ -157,7 +157,18 @@ public class EnemyController : MonoBehaviour
         {
             animator.SetFloat("moveX", Mathf.Abs(moveDirection.x));
             animator.SetFloat("moveY", moveDirection.y);
-            animator.SetBool("isAttacking", isAttacking);
+            
+            // Only update isAttacking if EnemyCombat isn't controlling it
+            if (enemyCombat == null || !enemyCombat.IsAttacking())
+            {
+                animator.SetBool("isAttacking", isAttacking);
+            }
+            else
+            {
+                // Combat system is controlling attacks - preserve the current state
+                Debug.Log($"{gameObject.name}: UpdateAnimation skipping isAttacking override - combat system is in control");
+            }
+            
             animator.SetBool("isDead", isDead);
         }
     }
@@ -177,11 +188,13 @@ public class EnemyController : MonoBehaviour
     }
 
     /// <summary>
-    /// Stop all movement
+    /// Stop all movement (but don't interrupt attacks)
     /// </summary>
     public void Stop()
     {
-        UpdateAnimation(Vector2.zero, false, false);
+        // Don't override animation if combat system is handling attacks
+        bool isCurrentlyAttacking = enemyCombat != null && enemyCombat.IsAttacking();
+        UpdateAnimation(Vector2.zero, isCurrentlyAttacking, false);
     }
 
     /// <summary>

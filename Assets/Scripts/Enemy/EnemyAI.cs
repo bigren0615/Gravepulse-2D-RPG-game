@@ -96,7 +96,21 @@ public class EnemyAI : MonoBehaviour
         // Execute behavior based on state
         if (isChasing)
         {
-            ChasePlayer();
+            // Check if enemy is in combat mode (attacking at close range)
+            bool inCombatMode = combat != null && combat.IsInCombatMode();
+            
+            if (inCombatMode)
+            {
+                // In combat mode - stop moving and let combat system handle attacks
+                controller.Stop();
+            }
+            else
+            {
+                // Still chasing - move toward player
+                ChasePlayer();
+            }
+            
+            // Enter combat state for GameManager
             if (combat != null && !combat.IsInCombat())
                 combat.EnterCombat();
         }
