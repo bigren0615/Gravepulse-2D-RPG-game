@@ -16,7 +16,11 @@ public class EnemyAI : MonoBehaviour
     public float chaseRadius = 5f;
     public float stopDistance = 0.5f;
     [Range(0f, 360f)]
-    public float fieldOfViewAngle = 110f;
+    [Tooltip("Field of view angle when patrolling")]
+    public float patrolFieldOfViewAngle = 110f;
+    [Range(0f, 360f)]
+    [Tooltip("Field of view angle when chasing player")]
+    public float chaseFieldOfViewAngle = 180f;
     public float memoryDuration = 3f;
     public float searchDuration = 8f;
     public float searchRadius = 2.5f;
@@ -96,9 +100,24 @@ public class EnemyAI : MonoBehaviour
         // Execute behavior based on state
         if (isChasing)
         {
-            ChasePlayer();
-            if (combat != null && !combat.IsInCombat())
-                combat.EnterCombat();
+            // Check if enemy is actively attacking
+            bool isAttacking = combat != null && combat.IsAttacking();
+            
+            if (isAttacking)
+            {
+                // Don't move while attacking - let combat system handle it completely
+                // The attack animation will override movement
+            }
+            else
+            {
+                // Continue chasing and approaching the player
+                // Enemy will keep moving toward player even in combat mode
+                // until close enough to attack
+                ChasePlayer();
+            }
+            
+            // Combat state is now only entered when enemy first spots player (OnPlayerSpotted)
+            // or when player hits enemy (ForceSpotPlayer), not automatically during chase
         }
         else if (isSearching)
         {
@@ -151,6 +170,7 @@ public class EnemyAI : MonoBehaviour
         hasPlayerInMemory = true;
         lostSightTimer = 0f;
         
+        // Only play spotted effects and enter combat when first spotting the player
         if (!isChasing && !hasPlayedSpottedSound)
         {
             AudioManager.Instance.PlaySFX(SFXType.Suspense);
@@ -158,6 +178,10 @@ public class EnemyAI : MonoBehaviour
             
             if (bubbleController != null)
                 bubbleController.ShowSuspenseBubble();
+            
+            // Enter combat state for GameManager - starts battle music!
+            if (combat != null && !combat.IsInCombat())
+                combat.EnterCombat();
         }
         
         isChasing = true;
@@ -201,8 +225,10 @@ public class EnemyAI : MonoBehaviour
         Vector2 dirToPlayer = (playerPos2D - enemyPos2D).normalized;
         Vector2 facingDir = controller.GetFacingDirection();
 
+        // Use different FOV depending on whether enemy is chasing or patrolling
+        float currentFOV = isChasing ? chaseFieldOfViewAngle : patrolFieldOfViewAngle;
         float angle = Vector2.Angle(facingDir, dirToPlayer);
-        return angle <= fieldOfViewAngle / 2f;
+        return angle <= currentFOV / 2f;
     }
 
     private bool HasClearLineOfSight(Vector2 playerPos2D)
@@ -216,6 +242,10 @@ public class EnemyAI : MonoBehaviour
 
     private void Patrol()
     {
+        // Don't patrol while attacking
+        if (combat != null && combat.IsAttacking())
+            return;
+            
         if (waiting)
         {
             waitTimer -= Time.deltaTime;
@@ -238,6 +268,10 @@ public class EnemyAI : MonoBehaviour
 
     private void ChasePlayer()
     {
+        // Don't chase while attacking - enemy must finish attack first
+        if (combat != null && combat.IsAttacking())
+            return;
+            
         GameObject player = controller.GetPlayer();
         if (player == null) return;
 
@@ -249,7 +283,16 @@ public class EnemyAI : MonoBehaviour
         Vector2 targetPos2D = new Vector2(targetPos.x, targetPos.y);
         float dist = Vector2.Distance(enemyPos2D, targetPos2D);
 
-        if (dist > stopDistance)
+        // Use different stop distance based on whether enemy has combat capabilities
+        float effectiveStopDistance = stopDistance;
+        if (combat != null && combat.IsInCombatMode())
+        {
+            // In combat mode: approach until within attack range
+            // Use slightly less than attack hitbox to ensure reliable attack triggering
+            effectiveStopDistance = combat.attackHitboxRadius * 0.8f;
+        }
+
+        if (dist > effectiveStopDistance)
             controller.MoveToward(targetPos);
     }
 
@@ -271,6 +314,10 @@ public class EnemyAI : MonoBehaviour
 
     private void SearchForPlayer()
     {
+        // Don't search while attacking
+        if (combat != null && combat.IsAttacking())
+            return;
+            
         searchTimer += Time.deltaTime;
 
         if (searchTimer >= searchDuration)
@@ -348,6 +395,29 @@ public class EnemyAI : MonoBehaviour
     }
 
     // ========== PUBLIC INTERFACE ==========
+
+    /// <summary>
+    /// Force the enemy to instantly spot the player (bypasses FOV check)
+    /// Used when player hits enemy to make enemy immediately enter combat
+    /// </summary>
+    public void ForceSpotPlayer()
+    {
+        GameObject player = controller.GetPlayer();
+        if (player == null)
+        {
+            player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
+            {
+                controller.player = player;
+            }
+        }
+        
+        if (player != null)
+        {
+            // Instantly spot the player - this will play suspense sound and enter combat
+            OnPlayerSpotted(player.transform.position);
+        }
+    }
 
     public bool IsChasing() => isChasing;
     public bool IsSearching() => isSearching;
@@ -450,15 +520,17 @@ public class EnemyAI : MonoBehaviour
         Vector2 facingDir2D = controller.GetFacingDirection();
         Vector3 facingDir3D = new Vector3(facingDir2D.x, facingDir2D.y, 0f);
 
-        Gizmos.color = new Color(1f, 1f, 0f, 0.2f);
+        // Use different FOV and color depending on whether enemy is chasing or patrolling
+        float currentFOV = isChasing ? chaseFieldOfViewAngle : patrolFieldOfViewAngle;
+        Gizmos.color = isChasing ? new Color(1f, 0.5f, 0f, 0.3f) : new Color(1f, 1f, 0f, 0.2f);
 
-        float halfAngle = fieldOfViewAngle / 2f;
+        float halfAngle = currentFOV / 2f;
         int segments = 20;
         Vector3 previousPoint = enemyPos;
 
         for (int i = 0; i <= segments; i++)
         {
-            float currentAngle = -halfAngle + (fieldOfViewAngle * i / segments);
+            float currentAngle = -halfAngle + (currentFOV * i / segments);
             Vector3 direction = Quaternion.Euler(0, 0, currentAngle) * facingDir3D;
             Vector3 point = enemyPos + direction * chaseRadius;
 
@@ -470,7 +542,7 @@ public class EnemyAI : MonoBehaviour
             previousPoint = point;
         }
 
-        Gizmos.color = Color.yellow;
+        Gizmos.color = isChasing ? new Color(1f, 0.5f, 0f) : Color.yellow;
         Vector3 leftEdge = Quaternion.Euler(0, 0, -halfAngle) * facingDir3D * chaseRadius;
         Vector3 rightEdge = Quaternion.Euler(0, 0, halfAngle) * facingDir3D * chaseRadius;
         Gizmos.DrawLine(enemyPos, enemyPos + leftEdge);

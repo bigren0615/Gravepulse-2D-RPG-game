@@ -426,75 +426,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &657584221
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 869503918}
-    m_Modifications:
-    - target: {fileID: 1122194092109365781, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: m_Name
-      value: EnemyGoblin (1)
-      objectReference: {fileID: 0}
-    - target: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -7.79
-      objectReference: {fileID: 0}
-    - target: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 3.33
-      objectReference: {fileID: 0}
-    - target: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6950652095260096320, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: speed
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 6950652095260096320, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: player
-      value: 
-      objectReference: {fileID: 1098726794}
-    - target: {fileID: 6950652095260096320, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-      propertyPath: enemyLayer.m_Bits
-      value: 512
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
 --- !u!1 &835426549
 GameObject:
   m_ObjectHideFlags: 0
@@ -920,7 +851,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1542459947}
-  - {fileID: 1946285223}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &893758181
@@ -984,6 +914,7 @@ GameObject:
   - component: {fileID: 1098726800}
   - component: {fileID: 1098726801}
   - component: {fileID: 1098726802}
+  - component: {fileID: 1098726803}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -1276,6 +1207,23 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1098726803
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1098726794}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2292ae75db7158449a8382d6c3ddce09, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  damageFlashColor: {r: 1, g: 0, b: 0, a: 1}
+  flashDuration: 0.1
+  flashCount: 2
+  invincibilityDuration: 0.5
 --- !u!1 &1249952109
 GameObject:
   m_ObjectHideFlags: 0
@@ -1487,6 +1435,13 @@ MonoBehaviour:
     pitchMax: 1.05
     loop: 0
     source: {fileID: 0}
+  - name: Punch1
+    clip: {fileID: 8300000, guid: d688897c6e5b8a94ea05703bcb870ba2, type: 3}
+    volume: 0.6
+    pitchMin: 0.95
+    pitchMax: 1.05
+    loop: 0
+    source: {fileID: 0}
   music:
   - name: AmbientBGM
     clip: {fileID: 8300000, guid: 5e5b3ffed146e664ca3995e8dec98f0f, type: 3}
@@ -1548,11 +1503,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!4 &1946285223 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
-  m_PrefabInstance: {fileID: 657584221}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1951045311
 GameObject:
   m_ObjectHideFlags: 0
@@ -4201,6 +4151,30 @@ PrefabInstance:
     - target: {fileID: 1825841589480968532, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578687424602656689, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
+      propertyPath: chaseRadius
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3659223117675410726, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
+      propertyPath: combatModeRadius
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3659223117675410726, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
+      propertyPath: maxAttackInterval
+      value: 1.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3659223117675410726, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
+      propertyPath: minAttackInterval
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3659223117675410726, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
+      propertyPath: attackHitboxRadius
+      value: 1.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3659223117675410726, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
+      propertyPath: readyAttackWarningTime
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 6950652095260096320, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
       propertyPath: speed

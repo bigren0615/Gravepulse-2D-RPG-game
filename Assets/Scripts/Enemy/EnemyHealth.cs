@@ -27,6 +27,7 @@ public class EnemyHealth : MonoBehaviour
     // Component references
     private EnemyController controller;
     private EnemyCombat combat;
+    private EnemyAI ai;
     private EnemyHealthBar healthBar;
 
     void Start()
@@ -35,6 +36,7 @@ public class EnemyHealth : MonoBehaviour
         
         controller = GetComponent<EnemyController>();
         combat = GetComponent<EnemyCombat>();
+        ai = GetComponent<EnemyAI>();
         
         if (controller.spriteRenderer != null)
             originalColor = controller.spriteRenderer.color;
@@ -85,10 +87,11 @@ public class EnemyHealth : MonoBehaviour
             StartCoroutine(DamageFlash());
         }
 
-        // Enter combat when hit
-        if (combat != null && !combat.IsInCombat())
+        // Force enemy to spot player when hit (bypasses FOV check)
+        // This makes the enemy instantly enter combat and start battle music
+        if (ai != null)
         {
-            combat.EnterCombat();
+            ai.ForceSpotPlayer();
         }
 
         if (currentHealth <= 0)

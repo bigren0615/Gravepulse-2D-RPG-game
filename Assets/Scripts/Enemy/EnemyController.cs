@@ -95,6 +95,12 @@ public class EnemyController : MonoBehaviour
     /// </summary>
     public bool MoveToward(Vector3 destination, bool updateFacing = true)
     {
+        // Prevent movement during attack - enemy must finish attack before moving
+        if (enemyCombat != null && enemyCombat.IsAttacking())
+        {
+            return false; // Cannot move while attacking
+        }
+        
         Vector3 dir = destination - transform.position;
         Vector2 moveDir2D = new Vector2(dir.x, dir.y).normalized;
 
@@ -155,9 +161,15 @@ public class EnemyController : MonoBehaviour
     {
         if (animator != null)
         {
-            animator.SetFloat("moveX", Mathf.Abs(moveDirection.x));
-            animator.SetFloat("moveY", moveDirection.y);
-            animator.SetBool("isAttacking", isAttacking);
+            // Don't override moveX/moveY if combat system is controlling attack direction
+            if (enemyCombat == null || !enemyCombat.IsAttacking())
+            {
+                animator.SetFloat("moveX", Mathf.Abs(moveDirection.x));
+                animator.SetFloat("moveY", moveDirection.y);
+                animator.SetBool("isAttacking", isAttacking);
+            }
+            // Combat system is controlling attacks - skip all parameter updates
+            
             animator.SetBool("isDead", isDead);
         }
     }
@@ -177,11 +189,18 @@ public class EnemyController : MonoBehaviour
     }
 
     /// <summary>
-    /// Stop all movement
+    /// Stop all movement (but preserve facing direction in animator)
     /// </summary>
     public void Stop()
     {
-        UpdateAnimation(Vector2.zero, false, false);
+        // Don't touch animator at all if combat system is actively attacking
+        // Let combat system have full control
+        if (enemyCombat != null && enemyCombat.IsAttacking())
+            return;
+        
+        // Use current facing direction when stopped to preserve animator direction
+        // This prevents the animator from defaulting to down direction
+        UpdateAnimation(facingDirection, false, false);
     }
 
     /// <summary>
