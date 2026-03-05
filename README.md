@@ -32,7 +32,7 @@
 | Move Left | `A` / `←` |
 | Move Right | `D` / `→` |
 | Attack | `Left Mouse Button` / `Z` |
-| Dash / Dodge | `Right Mouse Button` |
+| Dash / Dodge | `Right Mouse Button` / `Shift` |
 
 ---
 
