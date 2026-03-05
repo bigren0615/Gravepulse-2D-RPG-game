@@ -16,7 +16,11 @@ public class EnemyAI : MonoBehaviour
     public float chaseRadius = 5f;
     public float stopDistance = 0.5f;
     [Range(0f, 360f)]
-    public float fieldOfViewAngle = 110f;
+    [Tooltip("Field of view angle when patrolling")]
+    public float patrolFieldOfViewAngle = 110f;
+    [Range(0f, 360f)]
+    [Tooltip("Field of view angle when chasing player")]
+    public float chaseFieldOfViewAngle = 180f;
     public float memoryDuration = 3f;
     public float searchDuration = 8f;
     public float searchRadius = 2.5f;
@@ -221,8 +225,10 @@ public class EnemyAI : MonoBehaviour
         Vector2 dirToPlayer = (playerPos2D - enemyPos2D).normalized;
         Vector2 facingDir = controller.GetFacingDirection();
 
+        // Use different FOV depending on whether enemy is chasing or patrolling
+        float currentFOV = isChasing ? chaseFieldOfViewAngle : patrolFieldOfViewAngle;
         float angle = Vector2.Angle(facingDir, dirToPlayer);
-        return angle <= fieldOfViewAngle / 2f;
+        return angle <= currentFOV / 2f;
     }
 
     private bool HasClearLineOfSight(Vector2 playerPos2D)
@@ -514,15 +520,17 @@ public class EnemyAI : MonoBehaviour
         Vector2 facingDir2D = controller.GetFacingDirection();
         Vector3 facingDir3D = new Vector3(facingDir2D.x, facingDir2D.y, 0f);
 
-        Gizmos.color = new Color(1f, 1f, 0f, 0.2f);
+        // Use different FOV and color depending on whether enemy is chasing or patrolling
+        float currentFOV = isChasing ? chaseFieldOfViewAngle : patrolFieldOfViewAngle;
+        Gizmos.color = isChasing ? new Color(1f, 0.5f, 0f, 0.3f) : new Color(1f, 1f, 0f, 0.2f);
 
-        float halfAngle = fieldOfViewAngle / 2f;
+        float halfAngle = currentFOV / 2f;
         int segments = 20;
         Vector3 previousPoint = enemyPos;
 
         for (int i = 0; i <= segments; i++)
         {
-            float currentAngle = -halfAngle + (fieldOfViewAngle * i / segments);
+            float currentAngle = -halfAngle + (currentFOV * i / segments);
             Vector3 direction = Quaternion.Euler(0, 0, currentAngle) * facingDir3D;
             Vector3 point = enemyPos + direction * chaseRadius;
 
@@ -534,7 +542,7 @@ public class EnemyAI : MonoBehaviour
             previousPoint = point;
         }
 
-        Gizmos.color = Color.yellow;
+        Gizmos.color = isChasing ? new Color(1f, 0.5f, 0f) : Color.yellow;
         Vector3 leftEdge = Quaternion.Euler(0, 0, -halfAngle) * facingDir3D * chaseRadius;
         Vector3 rightEdge = Quaternion.Euler(0, 0, halfAngle) * facingDir3D * chaseRadius;
         Gizmos.DrawLine(enemyPos, enemyPos + leftEdge);
