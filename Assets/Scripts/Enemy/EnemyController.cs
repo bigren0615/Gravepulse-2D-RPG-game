@@ -155,18 +155,18 @@ public class EnemyController : MonoBehaviour
     {
         if (animator != null)
         {
-            animator.SetFloat("moveX", Mathf.Abs(moveDirection.x));
-            animator.SetFloat("moveY", moveDirection.y);
-            
-            // Only update isAttacking if EnemyCombat isn't controlling it
+            // Don't override moveX/moveY if combat system is controlling attack direction
             if (enemyCombat == null || !enemyCombat.IsAttacking())
             {
+                animator.SetFloat("moveX", Mathf.Abs(moveDirection.x));
+                animator.SetFloat("moveY", moveDirection.y);
                 animator.SetBool("isAttacking", isAttacking);
             }
             else
             {
-                // Combat system is controlling attacks - preserve the current state
-                Debug.Log($"{gameObject.name}: UpdateAnimation skipping isAttacking override - combat system is in control");
+                // Combat system is controlling attacks - it sets moveX/moveY for attack direction
+                // Only update isAttacking parameter
+                Debug.Log($"{gameObject.name}: UpdateAnimation skipping override - combat system controls direction");
             }
             
             animator.SetBool("isDead", isDead);
@@ -188,13 +188,16 @@ public class EnemyController : MonoBehaviour
     }
 
     /// <summary>
-    /// Stop all movement (but don't interrupt attacks)
+    /// Stop all movement (but preserve facing direction in animator)
     /// </summary>
     public void Stop()
     {
         // Don't override animation if combat system is handling attacks
         bool isCurrentlyAttacking = enemyCombat != null && enemyCombat.IsAttacking();
-        UpdateAnimation(Vector2.zero, isCurrentlyAttacking, false);
+        
+        // Use current facing direction when stopped to preserve animator direction
+        // This prevents the animator from defaulting to down direction
+        UpdateAnimation(facingDirection, isCurrentlyAttacking, false);
     }
 
     /// <summary>

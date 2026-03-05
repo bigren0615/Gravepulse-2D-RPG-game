@@ -45,6 +45,9 @@ public class EnemyCombat : MonoBehaviour
     // Attack timing
     private Coroutine attackCoroutine;
     private float nextAttackTime = 0f;
+    
+    // Attack direction (stored when attack starts)
+    private Vector2 attackDirection = Vector2.down;
 
     void Start()
     {
@@ -214,9 +217,18 @@ public class EnemyCombat : MonoBehaviour
     {
         isAttacking = true;
         hasHitPlayerThisAttack = false;
+        
+        // Store the facing direction for the attack
+        attackDirection = controller.GetFacingDirection();
+        
+        // Update animator with attack direction
+        UpdateAnimatorForAttack();
         UpdateAnimatorAttackState(true);
         
-        Debug.Log($"{gameObject.name}: Executing attack! isAttacking set to TRUE");
+        // Lock sprite flip to attack direction
+        controller.FlipSprite(attackDirection);
+        
+        Debug.Log($"{gameObject.name}: Executing attack! Direction: {attackDirection}, isAttacking set to TRUE");
         
         // Debug: Check animator state
         if (animator != null)
@@ -226,9 +238,21 @@ public class EnemyCombat : MonoBehaviour
             Debug.Log($"{gameObject.name}: Animator parameters - moveX: {animator.GetFloat("moveX")}, moveY: {animator.GetFloat("moveY")}, isAttacking: {animator.GetBool("isAttacking")}");
         }
         
-        // Safety fallback: If animation events aren't set up, reset after animation length
+        // Safety failsafe: If animation events aren't set up, reset after animation length
         // This prevents getting stuck in attacking state
         StartCoroutine(AttackFailsafe(2f)); // 2 second failsafe
+    }
+    
+    /// <summary>
+    /// Update animator moveX/moveY to match attack direction
+    /// </summary>
+    private void UpdateAnimatorForAttack()
+    {
+        if (animator != null)
+        {
+            animator.SetFloat("moveX", Mathf.Abs(attackDirection.x));
+            animator.SetFloat("moveY", attackDirection.y);
+        }
     }
     
     /// <summary>
@@ -305,6 +329,11 @@ public class EnemyCombat : MonoBehaviour
         isAttacking = false;
         UpdateAnimatorAttackState(false);
     }
+    
+    /// <summary>
+    /// Get the attack direction for animator use
+    /// </summary>
+    public Vector2 GetAttackDirection() => attackDirection;
 
     // ========== PUBLIC INTERFACE ==========
 
