@@ -236,6 +236,10 @@ public class EnemyAI : MonoBehaviour
 
     private void Patrol()
     {
+        // Don't patrol while attacking
+        if (combat != null && combat.IsAttacking())
+            return;
+            
         if (waiting)
         {
             waitTimer -= Time.deltaTime;
@@ -258,6 +262,10 @@ public class EnemyAI : MonoBehaviour
 
     private void ChasePlayer()
     {
+        // Don't chase while attacking - enemy must finish attack first
+        if (combat != null && combat.IsAttacking())
+            return;
+            
         GameObject player = controller.GetPlayer();
         if (player == null) return;
 
@@ -291,6 +299,10 @@ public class EnemyAI : MonoBehaviour
 
     private void SearchForPlayer()
     {
+        // Don't search while attacking
+        if (combat != null && combat.IsAttacking())
+            return;
+            
         searchTimer += Time.deltaTime;
 
         if (searchTimer >= searchDuration)

@@ -95,6 +95,12 @@ public class EnemyController : MonoBehaviour
     /// </summary>
     public bool MoveToward(Vector3 destination, bool updateFacing = true)
     {
+        // Prevent movement during attack - enemy must finish attack before moving
+        if (enemyCombat != null && enemyCombat.IsAttacking())
+        {
+            return false; // Cannot move while attacking
+        }
+        
         Vector3 dir = destination - transform.position;
         Vector2 moveDir2D = new Vector2(dir.x, dir.y).normalized;
 

@@ -99,7 +99,8 @@ public class EnemyCombat : MonoBehaviour
             EnterCombatMode();
         }
         // Exit combat mode if player leaves combat range
-        else if (isInCombatMode && distanceToPlayer > combatModeRadius)
+        // BUT: Don't exit if currently attacking - enemy must finish attack first
+        else if (isInCombatMode && distanceToPlayer > combatModeRadius && !isAttacking)
         {
             ExitCombatMode();
         }
