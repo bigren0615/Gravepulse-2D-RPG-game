@@ -4,7 +4,7 @@
 
 ### *2D Top-Down Real-Time Action RPG*
 
-![Unity](https://img.shields.io/badge/Unity-2022+-black?logo=unity&logoColor=white)
+![Unity](https://img.shields.io/badge/Unity-6-grey?logo=unity&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?logo=c-sharp&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-In%20Development-orange)
 ![Progress](https://img.shields.io/badge/Overall%20Progress-80%25-blue)
