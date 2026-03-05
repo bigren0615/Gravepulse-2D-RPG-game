@@ -15,6 +15,27 @@
 
 ---
 
+## 🌐 Play Online
+
+> **Play the latest build directly in your browser — no download required!**
+
+🎮 **[Click here to play online](https://bigren0615.github.io/Gravepulse-2D-RPG-game/)**
+
+---
+
+## 🕹️ Controls
+
+| Action | Key / Input |
+|---|---|
+| Move Up | `W` / `↑` |
+| Move Down | `S` / `↓` |
+| Move Left | `A` / `←` |
+| Move Right | `D` / `→` |
+| Attack | `Left Mouse Button` / `Z` |
+| Dash / Dodge | `Right Mouse Button` |
+
+---
+
 ## 🎯 Design Pillars
 
 | ❌ What We Are NOT Building | ✅ What We ARE Building |
@@ -31,6 +52,23 @@
 ```
 Total Completion  ████████████████░░░░  80%
 ```
+
+---
+
+## 📋 Log
+
+### v0.1 — Initial Release
+- Added player character (Skull Knight) with walk, attack, and death animations
+- Physics-driven movement using Rigidbody2D
+- Top-down environment with floor and nature tilesets
+- Basic melee attack system with hitbox detection
+- Dash mechanic with cooldown
+- Goblin enemy with patrol, chase, and attack AI
+- Emotion bubble system (! alert, ? suspense)
+- Ambient and battle background music
+- Footstep, attack, and dash sound effects
+- Sorting layers configured for proper depth rendering
+- WebGL build deployed to GitHub Pages
 
 ---
 
