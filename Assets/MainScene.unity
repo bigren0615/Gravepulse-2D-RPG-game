@@ -4133,11 +4133,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3659223117675410726, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
       propertyPath: maxAttackInterval
-      value: 1
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 3659223117675410726, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
       propertyPath: minAttackInterval
-      value: 0.2
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3659223117675410726, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
       propertyPath: readyAttackWarningTime

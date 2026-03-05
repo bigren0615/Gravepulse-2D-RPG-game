@@ -96,23 +96,19 @@ public class EnemyAI : MonoBehaviour
         // Execute behavior based on state
         if (isChasing)
         {
-            // Check if enemy is in combat mode (attacking at close range)
-            bool inCombatMode = combat != null && combat.IsInCombatMode();
+            // Check if enemy is actively attacking
             bool isAttacking = combat != null && combat.IsAttacking();
             
-            if (inCombatMode)
+            if (isAttacking)
             {
-                // In combat mode - but only call Stop() if not actively attacking
-                // This prevents interference with attack animations
-                if (!isAttacking)
-                {
-                    controller.Stop();
-                }
-                // If attacking, don't call anything - let combat system handle it completely
+                // Don't move while attacking - let combat system handle it completely
+                // The attack animation will override movement
             }
             else
             {
-                // Still chasing - move toward player
+                // Continue chasing and approaching the player
+                // Enemy will keep moving toward player even in combat mode
+                // until close enough to attack
                 ChasePlayer();
             }
             
@@ -277,7 +273,16 @@ public class EnemyAI : MonoBehaviour
         Vector2 targetPos2D = new Vector2(targetPos.x, targetPos.y);
         float dist = Vector2.Distance(enemyPos2D, targetPos2D);
 
-        if (dist > stopDistance)
+        // Use different stop distance based on whether enemy has combat capabilities
+        float effectiveStopDistance = stopDistance;
+        if (combat != null && combat.IsInCombatMode())
+        {
+            // In combat mode: approach until within attack range
+            // Use slightly less than attack hitbox to ensure reliable attack triggering
+            effectiveStopDistance = combat.attackHitboxRadius * 0.8f;
+        }
+
+        if (dist > effectiveStopDistance)
             controller.MoveToward(targetPos);
     }
 
