@@ -4152,6 +4152,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2578687424602656689, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
+      propertyPath: chaseRadius
+      value: 7
+      objectReference: {fileID: 0}
     - target: {fileID: 3659223117675410726, guid: 213f8af1a1b620b4bb84bf627859aa75, type: 3}
       propertyPath: combatModeRadius
       value: 3

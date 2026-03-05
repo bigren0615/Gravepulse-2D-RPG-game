@@ -33,6 +33,7 @@ public class EnemyCombat : MonoBehaviour
     // Component references
     private EnemyHealth health;
     private EnemyController controller;
+    private EnemyAI enemyAI;
     private Animator animator;
     private GameObject player;
 
@@ -53,6 +54,7 @@ public class EnemyCombat : MonoBehaviour
     {
         health = GetComponent<EnemyHealth>();
         controller = GetComponent<EnemyController>();
+        enemyAI = GetComponent<EnemyAI>();
         animator = GetComponent<Animator>();
         player = controller.GetPlayer();
         
@@ -91,9 +93,20 @@ public class EnemyCombat : MonoBehaviour
     /// </summary>
     private void UpdateCombatMode()
     {
+        // Only allow combat mode if enemy is actively chasing (has spotted player)
+        bool isChasing = enemyAI != null && enemyAI.IsChasing();
+        
+        if (!isChasing)
+        {
+            // Not chasing player - exit combat mode if in it
+            if (isInCombatMode)
+                ExitCombatMode();
+            return;
+        }
+        
         float distanceToPlayer = Vector2.Distance(transform.position, player.transform.position);
         
-        // Enter combat mode if within combat radius
+        // Enter combat mode if within combat radius AND chasing player
         if (!isInCombatMode && distanceToPlayer <= combatModeRadius)
         {
             EnterCombatMode();
