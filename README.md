@@ -7,7 +7,7 @@
 ![Unity](https://img.shields.io/badge/Unity-2022+-black?logo=unity&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?logo=c-sharp&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-In%20Development-orange)
-![Progress](https://img.shields.io/badge/Overall%20Progress-70%25-blue)
+![Progress](https://img.shields.io/badge/Overall%20Progress-80%25-blue)
 
 > **Goal:** Real-time physics-driven top-down action RPG with fluid combat, dodge mechanics, and responsive input.
 
@@ -29,7 +29,7 @@
 ## 📊 Overall Progress
 
 ```
-Total Completion  ██████████████░░░░░░  70%
+Total Completion  ████████████████░░░░  80%
 ```
 
 ---
@@ -245,7 +245,7 @@ public class PlayerController : MonoBehaviour
 
 ### ⚔️ Phase 8 — Combat System
 ```
-████████████░░░░░░░░░░   55%  🔄 IN PROGRESS
+██████████████░░░░░░░░   65%  🔄 IN PROGRESS
 ```
 - [x] Attack input (Left Click / Z key)
 - [x] Arc-based hitbox detection (`Physics2D.OverlapCircleAll` + angle check)
@@ -256,6 +256,8 @@ public class PlayerController : MonoBehaviour
 - [x] Attack animation events (`AttackStart`, `AttackHit`, `AttackEnd`)
 - [x] Attack SFX (swoosh ×3, slash/impact ×3)
 - [x] Attack debug visualization (Gizmos arc)
+- [x] Enemy attack back — `EnemyCombat.cs` deals damage to player via `PlayerHealth.TakeDamage()`
+- [x] Player invincibility frames (brief I-frames after taking damage, configurable duration)
 - [ ] Knockback on enemy hit
 - [ ] Hitstop (freeze frames)
 - [ ] Dodge I-frames during dash
@@ -265,9 +267,12 @@ public class PlayerController : MonoBehaviour
 
 ### 🤖 Phase 9 — Enemy AI
 ```
-████████████████░░░░░░   75%  🔄 IN PROGRESS
+█████████████████████░   92%  🔄 IN PROGRESS
 ```
-- [x] `EnemyPatrol.cs` — Goblin enemy implemented
+- [x] `EnemyAI.cs` — Goblin patrol / chase / search brain (refactored from `EnemyPatrol.cs`)
+- [x] `EnemyController.cs` — Physics movement and sprite facing, decoupled from AI
+- [x] `EnemyCombat.cs` — Close-range combat mode with attack sequences and player damage
+- [x] `EnemyHealth.cs` — Health, damage flash, death state
 - [x] Random patrol within patrol radius
 - [x] Player detection via chase radius + field-of-view angle
 - [x] Line-of-sight check (no chasing through walls)
@@ -280,7 +285,7 @@ public class PlayerController : MonoBehaviour
 - [x] Emotion bubbles: `!` when spotting player, `?` when losing track
 - [x] Goblin sprite set (Walk / Attack / Dead — Down / Left / Up)
 - [x] Goblin Animator controller (`GoblinAC.controller`)
-- [ ] Enemy attack back (deal damage to player)
+- [x] Enemy attack back (deal damage to player via `PlayerHealth.TakeDamage()`)
 - [ ] Multiple enemy types
 
 ---
@@ -330,6 +335,40 @@ public class PlayerController : MonoBehaviour
 
 ---
 
+### 🧍 Phase 10.6 — Player Health & Combat System
+```
+██████████████████████  100%  ✅ COMPLETE
+```
+- [x] `PlayerHealth.cs` — Full player health system
+- [x] `TakeDamage(float damage)` with configurable invincibility frames (default 0.5 s)
+- [x] Damage flash visual feedback (red colour, configurable flash count)
+- [x] Player death handling — movement disabled, colliders disabled, animator `Dead` / `isDead` trigger
+- [x] `Heal(float amount)` method
+- [x] Player hit SFX (`SFXType.Punch1`)
+- [x] `PlayerHealthBarUI.cs` — Screen-space HUD health bar (top-left)
+- [x] Smooth fill animation with colour gradient (green → yellow → red)
+- [x] `PlayerHealthBarUI` singleton for global access from `PlayerHealth`
+- [x] Resolution-independent (CanvasScaler / anchored RectTransform)
+- [x] Editor inspector helper buttons (Auto-Find, Test Health Bar)
+
+---
+
+### 🔢 Phase 10.7 — Floating Damage Numbers (Zenless Zone Zero Style)
+```
+██████████████████████  100%  ✅ COMPLETE
+```
+- [x] `DamageText.cs` — Individual damage number animation (float up + fade out)
+- [x] `DamageTextManager.cs` — Object-pooling manager (configurable pool size)
+- [x] Yellow/gold gradient for enemy taking damage
+- [x] Red gradient for player taking damage
+- [x] Orange gradient for critical hits
+- [x] World-space spawn at hit position with vertical offset + horizontal spread
+- [x] `DamageType` enum (`Enemy`, `Player`, `Critical`) for easy extensibility
+- [x] `ShowDamageCustom()` API for arbitrary gradient colours
+- [x] Integrated into `EnemyHealth.TakeDamage()` and `PlayerHealth.TakeDamage()`
+
+---
+
 ## ⚔️ Core Feature Status
 
 ### 🕹️ Movement
@@ -373,7 +412,7 @@ public class PlayerController : MonoBehaviour
 
 ### ⚔️ Combat
 ```
-████████████░░░░░░░░░░   55%  🔄 IN PROGRESS
+██████████████░░░░░░░░   65%  🔄 IN PROGRESS
 ```
 | Feature | Status |
 |---|:---:|
@@ -384,16 +423,20 @@ public class PlayerController : MonoBehaviour
 | Per-swing hit tracking (no double-hit) | ✅ |
 | Enemy HP system | ✅ |
 | Enemy death state + animation | ✅ |
+| Enemy attack back (deal damage to player) | ✅ |
+| Player HP system + damage flash | ✅ |
+| Player invincibility frames (after hit) | ✅ |
+| Floating damage numbers (ZZZ style) | ✅ |
 | Hitstop (freeze frames) | ❌ |
 | Knockback on enemy | ❌ |
-| Dodge / I-frames | ⏳ (dash done, I-frames pending) |
+| Dodge I-frames during dash | ⏳ (dash done, I-frames pending) |
 | Combo system | ❌ |
 
 ---
 
 ### 🤖 Enemy AI
 ```
-████████████████░░░░░░   75%  🔄 IN PROGRESS
+█████████████████████░   92%  🔄 IN PROGRESS
 ```
 | Feature | Status |
 |---|:---:|
@@ -408,7 +451,8 @@ public class PlayerController : MonoBehaviour
 | Death state + death animation | ✅ |
 | Emotion bubbles (! / ?) | ✅ |
 | Combat music trigger | ✅ |
-| Enemy attack back (deal damage to player) | ❌ |
+| Enemy attack back (deal damage to player) | ✅ |
+| Multiple enemy types | ❌ |
 
 ---
 
@@ -425,20 +469,23 @@ public class PlayerController : MonoBehaviour
 | `BubbleController` (reusable emotion bubble system) | ✅ |
 | Suspense bubble prefab (!) | ✅ |
 | Question bubble prefab (?) | ✅ |
+| `PlayerHealth` singleton (HP, invincibility, death) | ✅ |
+| `DamageTextManager` singleton (pooled damage numbers) | ✅ |
 
 ---
 
 ### 🖥️ UI / Menu
 ```
-████████████░░░░░░░░░░   55%  🔄 IN PROGRESS
+████████████████░░░░░░   72%  🔄 IN PROGRESS
 ```
 | Feature | Status |
 |---|:---:|
 | Enemy Health Bars (Zenless Zone Zero style) | ✅ |
 | Health bar line connectors | ✅ |
 | Health bar manager system | ✅ |
+| Player HP bar (top-left HUD, smooth + colour gradient) | ✅ |
+| Floating damage numbers (ZZZ style, pooled) | ✅ |
 | Main Menu screen | ❌ |
-| HUD (Player HP bar, stamina/energy bar) | ❌ |
 | Pause Menu | ❌ |
 | Game Over screen | ❌ |
 
@@ -455,6 +502,7 @@ public class PlayerController : MonoBehaviour
 | Attack swoosh SFX (×3) | ✅ |
 | Slash / Impact SFX (×3) | ✅ |
 | Enemy spotted SFX (suspense) | ✅ |
+| Player hit / take-damage SFX (`Punch1`) | ✅ |
 | Ambient background music | ✅ |
 | Battle background music | ✅ |
 | Dynamic music crossfade (ambient ↔ battle) | ✅ |
@@ -466,10 +514,10 @@ public class PlayerController : MonoBehaviour
 
 | Phase | Feature | Priority |
 |---|---|:---:|
-| **Phase 11** | Combat Polish (knockback, hitstop, I-frames) | 🔴 High |
-| **Phase 12** | Enemy Attack Back (deal damage to player) | 🔴 High |
-| **Phase 13** | Player HP / Hurt / Death system | 🔴 High |
-| **Phase 14** | ~~Enemy Health Bars~~ ✅ → Player HUD (HP bar, menus) | 🟠 Medium |
+| **Phase 11** | Combat Polish (knockback, hitstop, dodge I-frames) | 🔴 High |
+| **Phase 12** | ~~Enemy Attack Back~~ ✅ → `EnemyCombat.cs` complete | ✅ Done |
+| **Phase 13** | ~~Player HP / Hurt / Death system~~ ✅ → `PlayerHealth.cs` complete | ✅ Done |
+| **Phase 14** | ~~Player HP Bar~~ ✅ → Main Menu, Pause Menu, Game Over screen | 🟠 Medium |
 | **Phase 15** | Multiple enemy types | 🟠 Medium |
 | **Phase 16** | ~~Sound Effects~~ ✅ → UI interaction SFX | 🟡 Low |
 | **Phase 17** | Polish (combo system, screenshake, VFX) | 🟡 Low |
@@ -511,12 +559,27 @@ Assets/
 │   ├── Question/                            ✅ (question bubble animation)
 │   └── Suspense/                            ✅ (suspense bubble animation)
 ├── Scripts/
-│   ├── PlayerController.cs                  ✅
-│   ├── EnemyPatrol.cs                       ✅
-│   ├── AudioManager.cs                      ✅
-│   ├── GameManager.cs                       ✅
-│   ├── BubbleController.cs                  ✅
-│   └── SoundEnums.cs                        ✅
+│   ├── Core/
+│   │   ├── AudioManager.cs                  ✅
+│   │   ├── GameManager.cs                   ✅
+│   │   └── SoundEnums.cs                    ✅
+│   ├── Enemy/
+│   │   ├── EnemyAI.cs                       ✅  (patrol / chase / search brain)
+│   │   ├── EnemyCombat.cs                   ✅  (close-range combat & player damage)
+│   │   ├── EnemyController.cs               ✅  (physics movement & sprite facing)
+│   │   └── EnemyHealth.cs                   ✅  (health, damage flash, death)
+│   ├── Player/
+│   │   ├── PlayerController.cs              ✅  (movement, dash, attack input)
+│   │   └── PlayerHealth.cs                  ✅  (HP, invincibility, death)
+│   └── UI/
+│       ├── BubbleController.cs              ✅
+│       ├── DamageText.cs                    ✅  (floating damage number animation)
+│       ├── DamageTextManager.cs             ✅  (object-pooling manager)
+│       ├── EnemyHealthBar.cs                ✅
+│       ├── EnemyHealthBarManager.cs         ✅
+│       ├── HealthBarSetupHelper.cs          ✅
+│       ├── HealthBarSystemValidator.cs      ✅
+│       └── PlayerHealthBarUI.cs             ✅  (player HUD health bar)
 ├── Sounds/
 │   ├── BGM/
 │   │   ├── priscilasousa-loop-edm-*.mp3     ✅ (Ambient BGM)
