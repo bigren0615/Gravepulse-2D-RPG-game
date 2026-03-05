@@ -19,6 +19,19 @@ public class PlayerHealthBarUI : MonoBehaviour
     [Tooltip("The Image component for the border/box. Assign your custom sprite to this Image's 'Source Image' field.")]
     public Image healthBarBox;
 
+    [Header("Position & Size")]
+    [Tooltip("Width of the health bar in pixels (fixed size)")]
+    public float healthBarWidth = 200f;
+    
+    [Tooltip("Height of the health bar in pixels (fixed size)")]
+    public float healthBarHeight = 30f;
+    
+    [Tooltip("Padding from the left edge of the screen (in pixels)")]
+    public float paddingLeft = 20f;
+    
+    [Tooltip("Padding from the top edge of the screen (in pixels)")]
+    public float paddingTop = 20f;
+
     [Header("Health Bar Settings")]
     [Tooltip("Use sprite's original colors instead of color tinting. Enable this if you have custom colored sprites!")]
     public bool useNativeSpriteColors = false;
@@ -61,8 +74,32 @@ public class PlayerHealthBarUI : MonoBehaviour
         Instance = this;
     }
 
+#if UNITY_EDITOR
+    /// <summary>
+    /// Update size and position when values change in inspector (Edit mode only)
+    /// </summary>
+    private void OnValidate()
+    {
+        // Only apply in edit mode, not during play
+        if (!Application.isPlaying)
+        {
+            // Use delayed call to avoid errors during inspector updates
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (this != null)
+                {
+                    ApplySizeAndPosition();
+                }
+            };
+        }
+    }
+#endif
+
     private void Start()
     {
+        // Apply size and position settings
+        ApplySizeAndPosition();
+        
         // Validate UI components
         ValidateComponents();
         
@@ -82,6 +119,27 @@ public class PlayerHealthBarUI : MonoBehaviour
         else
         {
             Debug.LogWarning("PlayerHealthBarUI: Health bar fill image is not assigned!");
+        }
+    }
+
+    /// <summary>
+    /// Apply size and position settings to the health bar
+    /// </summary>
+    public void ApplySizeAndPosition()
+    {
+        RectTransform rectTransform = GetComponent<RectTransform>();
+        if (rectTransform != null)
+        {
+            // Set anchors to top-left corner (fixed position)
+            rectTransform.anchorMin = new Vector2(0f, 1f);
+            rectTransform.anchorMax = new Vector2(0f, 1f);
+            rectTransform.pivot = new Vector2(0f, 1f);
+            
+            // Set fixed size
+            rectTransform.sizeDelta = new Vector2(healthBarWidth, healthBarHeight);
+            
+            // Set position with padding
+            rectTransform.anchoredPosition = new Vector2(paddingLeft, -paddingTop);
         }
     }
 

@@ -17,10 +17,39 @@ public class PlayerHealthBarSetupMenu
             GameObject canvasObj = new GameObject("Canvas");
             canvas = canvasObj.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvasObj.AddComponent<CanvasScaler>();
+            
+            // Set up Canvas Scaler for FIXED pixel size (won't scale with resolution)
+            CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+            scaler.scaleFactor = 1f;
+            
             canvasObj.AddComponent<GraphicRaycaster>();
             
-            Debug.Log("✓ Created Canvas for UI");
+            Debug.Log("✓ Created Canvas with Constant Pixel Size scaling (TRUE fixed size)");
+        }
+        else
+        {
+            // Check existing canvas scaler
+            CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
+            if (scaler != null)
+            {
+                if (scaler.uiScaleMode == CanvasScaler.ScaleMode.ConstantPixelSize)
+                {
+                    Debug.Log("✓ Canvas uses Constant Pixel Size - health bar will be fixed size");
+                }
+                else if (scaler.uiScaleMode == CanvasScaler.ScaleMode.ScaleWithScreenSize)
+                {
+                    Debug.Log("⚠️ Canvas uses Scale With Screen Size - health bar will scale with resolution");
+                    Debug.Log("   To use fixed pixel size, click the 'Fix Canvas Scaler' button in PlayerHealthBar inspector");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("Canvas exists but has no CanvasScaler. Adding Constant Pixel Size scaler...");
+                scaler = canvas.gameObject.AddComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+                scaler.scaleFactor = 1f;
+            }
         }
 
         // Check if player health bar already exists
@@ -38,12 +67,12 @@ public class PlayerHealthBarSetupMenu
         
         RectTransform containerRect = healthBarContainer.AddComponent<RectTransform>();
         
-        // Position at top-left corner with some padding
+        // Position at top-left corner with some padding (will be managed by script)
         containerRect.anchorMin = new Vector2(0f, 1f); // Top-left
         containerRect.anchorMax = new Vector2(0f, 1f);
         containerRect.pivot = new Vector2(0f, 1f);
-        containerRect.anchoredPosition = new Vector2(20f, -20f); // 20px padding from edges
-        containerRect.sizeDelta = new Vector2(200f, 30f); // Default size
+        containerRect.anchoredPosition = new Vector2(20f, -20f); // Default 20px padding
+        containerRect.sizeDelta = new Vector2(200f, 30f); // Default size (adjustable in inspector)
 
         // Create background image
         GameObject background = new GameObject("Background");
@@ -102,12 +131,19 @@ public class PlayerHealthBarSetupMenu
         Debug.Log("════════════════════════════════════════════════");
         Debug.Log("✓ Player Health Bar UI created successfully!");
         Debug.Log("✓ Position: Top-left corner of screen");
+        Debug.Log("✓ Size Mode: CONSTANT PIXEL SIZE (won't change with resolution)");
         Debug.Log("✓ 'Use Native Sprite Colors' is enabled by default");
-        Debug.Log("✓ Configure appearance in Inspector:");
-        Debug.Log("  - Assign your custom sprites to the Background, Fill, and Box Image components");
-        Debug.Log("  - Each child object has an Image component - set the 'Source Image' field");
-        Debug.Log("  - Adjust colors, animation speed, and health thresholds as needed");
-        Debug.Log("  - Resize the health bar by adjusting the RectTransform");
+        Debug.Log("");
+        Debug.Log("Configure in Inspector:");
+        Debug.Log("  - Adjust 'Health Bar Width' and 'Health Bar Height' to resize");
+        Debug.Log("  - Adjust 'Padding Left' and 'Padding Top' to reposition");
+        Debug.Log("  - Assign custom sprites to Background, Fill, and Box child objects");
+        Debug.Log("  - Each child has an Image component - set its 'Source Image' field");
+        Debug.Log("");
+        Debug.Log("IMPORTANT - Editor vs Game:");
+        Debug.Log("  - The Game view zoom (1x, 2x, etc.) affects preview size");
+        Debug.Log("  - Set Game view to '1x' to see actual size");
+        Debug.Log("  - In actual builds, the size will be exactly as specified in pixels");
         Debug.Log("════════════════════════════════════════════════");
     }
 

@@ -26,10 +26,45 @@ public class PlayerHealthBarUIEditor : Editor
         {
             EditorGUILayout.HelpBox("✓ Using native sprite colors - your sprites will show their original colors!", MessageType.Info);
         }
+        
+        // Size control info
+        EditorGUILayout.HelpBox("Size Control: The health bar uses FIXED sizing and won't scale with screen resolution. Adjust 'Health Bar Width/Height' and 'Padding' below to customize.", MessageType.Info);
+        
+        // Check Canvas Scaler configuration
+        Canvas canvas = healthBar.GetComponentInParent<Canvas>();
+        if (canvas != null)
+        {
+            CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
+            if (scaler != null)
+            {
+                if (scaler.uiScaleMode != CanvasScaler.ScaleMode.ConstantPixelSize)
+                {
+                    EditorGUILayout.HelpBox($"⚠️ Canvas Scaler Mode: {scaler.uiScaleMode}\n\nFor TRUE FIXED sizing (pixels), use 'Constant Pixel Size'.\nFor SCALABLE sizing (adapts to resolution), use 'Scale With Screen Size'.\n\nClick 'Fix Canvas Scaler' button below to set to Constant Pixel Size.", MessageType.Warning);
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("✓ Canvas Scaler is set to Constant Pixel Size - true fixed sizing!", MessageType.Info);
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("⚠️ Canvas is missing CanvasScaler component!", MessageType.Warning);
+            }
+        }
+        
         EditorGUILayout.Space();
 
         // Draw default inspector
         DrawDefaultInspector();
+        
+        // Check if size/position changed
+        if (GUI.changed)
+        {
+            if (Application.isPlaying)
+            {
+                healthBar.ApplySizeAndPosition();
+            }
+        }
 
         EditorGUILayout.Space();
 
@@ -64,6 +99,61 @@ public class PlayerHealthBarUIEditor : Editor
         // Helper buttons
         EditorGUILayout.LabelField("Quick Actions", EditorStyles.boldLabel);
         
+        if (GUILayout.Button("Fix Canvas Scaler (Set to Constant Pixel Size)"))
+        {
+            Canvas parentCanvas = healthBar.GetComponentInParent<Canvas>();
+            if (parentCanvas != null)
+            {
+                CanvasScaler scaler = parentCanvas.GetComponent<CanvasScaler>();
+                if (scaler == null)
+                {
+                    scaler = parentCanvas.gameObject.AddComponent<CanvasScaler>();
+                }
+                
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+                scaler.scaleFactor = 1f;
+                
+                EditorUtility.SetDirty(scaler);
+                Debug.Log("✓ Canvas Scaler set to Constant Pixel Size - health bar will be TRUE fixed size!");
+            }
+            else
+            {
+                Debug.LogError("Cannot find parent Canvas!");
+            }
+        }
+        
+        if (GUILayout.Button("Set Canvas to Scale With Screen Size (Recommended)"))
+        {
+            Canvas parentCanvas = healthBar.GetComponentInParent<Canvas>();
+            if (parentCanvas != null)
+            {
+                CanvasScaler scaler = parentCanvas.GetComponent<CanvasScaler>();
+                if (scaler == null)
+                {
+                    scaler = parentCanvas.gameObject.AddComponent<CanvasScaler>();
+                }
+                
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920, 1080);
+                scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+                scaler.matchWidthOrHeight = 0.5f;
+                
+                EditorUtility.SetDirty(scaler);
+                Debug.Log("✓ Canvas Scaler set to Scale With Screen Size - UI will scale proportionally!");
+            }
+            else
+            {
+                Debug.LogError("Cannot find parent Canvas!");
+            }
+        }
+        
+        if (GUILayout.Button("Apply Size & Position (Edit Mode)"))
+        {
+            healthBar.ApplySizeAndPosition();
+            EditorUtility.SetDirty(healthBar);
+            Debug.Log("✓ Applied size and position settings!");
+        }
+        
         if (GUILayout.Button("Enable Native Sprite Colors (Fix Black Bar)"))
         {
             SerializedProperty nativeColorsProp = serializedObject.FindProperty("useNativeSpriteColors");
@@ -90,6 +180,31 @@ public class PlayerHealthBarUIEditor : Editor
         {
             ShowSpriteImportHelp();
         }
+        
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Understanding Unity Editor Scaling", EditorStyles.boldLabel);
+        
+        if (GUILayout.Button("Why Does Size Change in Editor?"))
+        {
+            EditorUtility.DisplayDialog(
+                "Unity Editor Game View Scaling",
+                "The Game view in Unity Editor has a ZOOM control (top-left corner):\n\n" +
+                "• 'Free Aspect' or '16:9' dropdown affects the view size\n" +
+                "• The scale bar (1x, 2x, etc.) zooms the view\n" +
+                "• This is just the PREVIEW - not the actual game!\n\n" +
+                "To see TRUE sizing:\n" +
+                "1. Set Game view to '1x' scale\n" +
+                "2. OR build and run the actual game\n" +
+                "3. The health bar size depends on your Canvas Scaler mode:\n" +
+                "   • Constant Pixel Size = Always the same pixel size\n" +
+                "   • Scale With Screen Size = Scales proportionally\n\n" +
+                "TIP: Use 'Maximize On Play' to see full-screen preview!",
+                "Got it!"
+            );
+        }
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Testing", EditorStyles.boldLabel);
 
         if (GUILayout.Button("Test Health Bar (75% Health)"))
         {
