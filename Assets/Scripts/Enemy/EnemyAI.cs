@@ -112,9 +112,8 @@ public class EnemyAI : MonoBehaviour
                 ChasePlayer();
             }
             
-            // Enter combat state for GameManager
-            if (combat != null && !combat.IsInCombat())
-                combat.EnterCombat();
+            // Combat state is now only entered when enemy first spots player (OnPlayerSpotted)
+            // or when player hits enemy (ForceSpotPlayer), not automatically during chase
         }
         else if (isSearching)
         {
@@ -167,6 +166,7 @@ public class EnemyAI : MonoBehaviour
         hasPlayerInMemory = true;
         lostSightTimer = 0f;
         
+        // Only play spotted effects and enter combat when first spotting the player
         if (!isChasing && !hasPlayedSpottedSound)
         {
             AudioManager.Instance.PlaySFX(SFXType.Suspense);
@@ -174,6 +174,10 @@ public class EnemyAI : MonoBehaviour
             
             if (bubbleController != null)
                 bubbleController.ShowSuspenseBubble();
+            
+            // Enter combat state for GameManager - starts battle music!
+            if (combat != null && !combat.IsInCombat())
+                combat.EnterCombat();
         }
         
         isChasing = true;
@@ -385,6 +389,29 @@ public class EnemyAI : MonoBehaviour
     }
 
     // ========== PUBLIC INTERFACE ==========
+
+    /// <summary>
+    /// Force the enemy to instantly spot the player (bypasses FOV check)
+    /// Used when player hits enemy to make enemy immediately enter combat
+    /// </summary>
+    public void ForceSpotPlayer()
+    {
+        GameObject player = controller.GetPlayer();
+        if (player == null)
+        {
+            player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
+            {
+                controller.player = player;
+            }
+        }
+        
+        if (player != null)
+        {
+            // Instantly spot the player - this will play suspense sound and enter combat
+            OnPlayerSpotted(player.transform.position);
+        }
+    }
 
     public bool IsChasing() => isChasing;
     public bool IsSearching() => isSearching;

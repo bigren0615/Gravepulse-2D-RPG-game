@@ -126,14 +126,18 @@ public class EnemyCombat : MonoBehaviour
 
     /// <summary>
     /// Enter combat mode (close range fighting)
+    /// Combat mode is SEPARATE from combat state
+    /// - Combat MODE = close range (within combatModeRadius) - enables attacking
+    /// - Combat STATE = enemy has spotted player - triggers battle music via GameManager
     /// </summary>
     private void EnterCombatMode()
     {
         isInCombatMode = true;
         
-        // Make sure we're in combat state for GameManager
-        if (!isInCombat)
-            EnterCombat();
+        // DO NOT automatically enter combat state here!
+        // Combat state should only be entered when:
+        // 1. Enemy spots the player (OnPlayerSpotted in EnemyAI)
+        // 2. Player hits the enemy (ForceSpotPlayer in EnemyAI)
     }
 
     /// <summary>
