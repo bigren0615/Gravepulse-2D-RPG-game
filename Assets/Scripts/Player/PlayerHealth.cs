@@ -42,6 +42,20 @@ public class PlayerHealth : MonoBehaviour
             originalColor = spriteRenderer.color;
         else
             Debug.LogError("Player needs a SpriteRenderer!");
+
+        // Initialize health bar UI
+        UpdateHealthBar();
+    }
+
+    /// <summary>
+    /// Update the player health bar UI
+    /// </summary>
+    private void UpdateHealthBar()
+    {
+        if (PlayerHealthBarUI.Instance != null)
+        {
+            PlayerHealthBarUI.Instance.UpdateHealth(currentHealth, maxHealth);
+        }
     }
 
     /// <summary>
@@ -54,6 +68,12 @@ public class PlayerHealth : MonoBehaviour
 
         currentHealth -= damage;
         Debug.Log($"Player took {damage} damage! Current HP: {currentHealth}/{maxHealth}");
+
+        // Show damage text (red gradient for player damage)
+        if (DamageTextManager.Instance != null)
+        {
+            DamageTextManager.Instance.ShowDamage(damage, transform.position, DamageType.Player);
+        }
 
         // Play damage sound effect
         if (AudioManager.Instance != null)
@@ -69,6 +89,9 @@ public class PlayerHealth : MonoBehaviour
 
         // Start invincibility
         StartCoroutine(InvincibilityCoroutine());
+
+        // Update health bar
+        UpdateHealthBar();
 
         // Check for death
         if (currentHealth <= 0)
@@ -87,6 +110,9 @@ public class PlayerHealth : MonoBehaviour
 
         currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
         Debug.Log($"Player healed {amount}! Current HP: {currentHealth}/{maxHealth}");
+        
+        // Update health bar
+        UpdateHealthBar();
     }
 
     /// <summary>
