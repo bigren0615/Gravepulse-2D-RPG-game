@@ -57,7 +57,7 @@ Total Completion  ████████████████░░░░  
 
 ## 📋 Log
 
-### v0.1 — Initial Release
+### v0.1-Alpha — Initial Release
 - Added player character (Skull Knight) with walk, attack, and death animations
 - Physics-driven movement using Rigidbody2D
 - Top-down environment with floor and nature tilesets
