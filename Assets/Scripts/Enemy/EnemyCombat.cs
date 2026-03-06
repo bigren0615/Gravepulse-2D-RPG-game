@@ -42,6 +42,7 @@ public class EnemyCombat : MonoBehaviour
     private bool isInCombatMode = false; // New: Combat mode (close range) vs chase mode
     private bool isAttacking = false;
     private bool hasHitPlayerThisAttack = false;
+    private bool isReadyWindowOpen = false; // True during warning phase (dodge window for Vital View)
 
     // Attack timing
     private Coroutine attackCoroutine;
@@ -160,6 +161,7 @@ public class EnemyCombat : MonoBehaviour
     private void ExitCombatMode()
     {
         isInCombatMode = false;
+        isReadyWindowOpen = false; // Close dodge window if combat mode exits
 
         // Attacks cannot be interrupted once they start
         // Even if player moves away, the attack sequence will complete naturally
@@ -204,27 +206,35 @@ public class EnemyCombat : MonoBehaviour
             yield break;
         }
 
-        // Call ready attack warning (for future dodge system)
+        // Open the dodge window and play the warning indicator
+        isReadyWindowOpen = true;
         ReadyAttack();
 
-        // Wait remaining time before actual attack
+        // Wait remaining time before actual attack (this is the player's dodge window)
         yield return new WaitForSeconds(readyAttackWarningTime);
+
+        // NOTE: isReadyWindowOpen stays TRUE here intentionally.
+        // The window remains open through the attack animation so the player can
+        // still trigger Vital View right up until the hit frame fires (AttackHit).
+        // AttackHit() and AttackEnd() are responsible for closing the window.
 
         // Final check before executing attack - only for death/null player
         // Don't check combat mode - attack is already committed!
         if (health != null && health.IsDead())
         {
+            isReadyWindowOpen = false;
             attackCoroutine = null;
             yield break;
         }
 
         if (player == null)
         {
+            isReadyWindowOpen = false;
             attackCoroutine = null;
             yield break;
         }
 
-        // Execute attack
+        // Execute attack — window still open, player can still dodge during windup
         ExecuteAttack();
 
         // DON'T set nextAttackTime here - let AttackEnd() do it after animation completes
@@ -519,6 +529,10 @@ public class EnemyCombat : MonoBehaviour
     {
         Debug.Log($"{gameObject.name}: AttackHit event fired!");
 
+        // Close the dodge window — this is the last possible moment to Vital View dodge.
+        // Any dash BEFORE this point will still trigger bullet time.
+        isReadyWindowOpen = false;
+
         if (hasHitPlayerThisAttack)
             return;
 
@@ -561,6 +575,7 @@ public class EnemyCombat : MonoBehaviour
 
         Debug.Log($"{gameObject.name}: AttackEnd event fired! isAttacking set to FALSE");
         isAttacking = false;
+        isReadyWindowOpen = false; // Ensure closed if AttackHit never fired (e.g. missed)
         UpdateAnimatorAttackState(false);
 
         // Set next attack time AFTER animation completes
@@ -632,6 +647,11 @@ public class EnemyCombat : MonoBehaviour
     /// Check if currently attacking
     /// </summary>
     public bool IsAttacking() => isAttacking;
+
+    /// <summary>
+    /// True during the warning window — player can trigger Vital View by dashing now
+    /// </summary>
+    public bool IsInReadyWindow() => isReadyWindowOpen;
 
     private void OnDestroy()
     {

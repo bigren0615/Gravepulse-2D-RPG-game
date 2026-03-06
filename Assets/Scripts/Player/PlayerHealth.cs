@@ -162,6 +162,22 @@ public class PlayerHealth : MonoBehaviour
         isInvincible = false;
     }
 
+    /// <summary>
+    /// Grant invincibility for a specific duration using real (unscaled) time.
+    /// Used by Vital View dodge — works correctly even during bullet time.
+    /// </summary>
+    public void SetTemporaryInvincible(float realDuration)
+    {
+        StartCoroutine(VitalViewInvincibility(realDuration));
+    }
+
+    private IEnumerator VitalViewInvincibility(float duration)
+    {
+        isInvincible = true;
+        yield return new WaitForSecondsRealtime(duration);
+        isInvincible = false;
+    }
+
     private void Die()
     {
         if (isDead) return;

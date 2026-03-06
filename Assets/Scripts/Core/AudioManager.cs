@@ -265,4 +265,18 @@ public class AudioManager : MonoBehaviour
     {
         PlayRandomMusic(musicTypes.GetNames(), fadeDuration);
     }
+
+    /// <summary>
+    /// Set pitch on all music sources.
+    /// Called by GameManager during Vital View to create slow-motion audio effect.
+    /// Pass 1f to restore normal pitch.
+    /// </summary>
+    public void SetAllMusicPitch(float pitch)
+    {
+        foreach (Sound m in music)
+        {
+            if (m.source != null)
+                m.source.pitch = pitch;
+        }
+    }
 }

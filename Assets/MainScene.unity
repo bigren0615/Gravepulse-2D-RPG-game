@@ -1968,6 +1968,13 @@ MonoBehaviour:
     pitchMax: 1.05
     loop: 0
     source: {fileID: 0}
+  - name: Slice
+    clip: {fileID: 8300000, guid: 6012fec3958608d41bc522b0c607b619, type: 3}
+    volume: 0.6
+    pitchMin: 1.5
+    pitchMax: 1.5
+    loop: 0
+    source: {fileID: 0}
   music:
   - name: AmbientBGM
     clip: {fileID: 8300000, guid: 5e5b3ffed146e664ca3995e8dec98f0f, type: 3}

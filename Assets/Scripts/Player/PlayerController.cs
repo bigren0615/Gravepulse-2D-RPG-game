@@ -66,8 +66,8 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        // Dash input
-        if (!isDashing && Time.time >= lastDashTime + dashCooldown)
+        // Dash input — use unscaled time so cooldown works correctly during Vital View bullet time
+        if (!isDashing && Time.unscaledTime >= lastDashTime + dashCooldown)
         {
             if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetMouseButtonDown(1)) // Shift or Right Click
             {
@@ -128,9 +128,11 @@ public class PlayerController : MonoBehaviour
     // 2️ Physics-based movement
     private void Move()
     {
-        rb.MovePosition(
-            rb.position + movementInput * moveSpeed * Time.fixedDeltaTime
-        );
+        // During Vital View bullet time (timeScale ≈ 0.15), use unscaled delta so player
+        // moves at full real-time speed while everything else is slowed down.
+        bool inBulletTime = GameManager.Instance != null && GameManager.Instance.IsVitalViewActive();
+        float dt = inBulletTime ? Time.unscaledDeltaTime : Time.fixedDeltaTime;
+        rb.MovePosition(rb.position + movementInput * moveSpeed * dt);
     }
 
     // 3️ Animation sync
@@ -160,7 +162,7 @@ public class PlayerController : MonoBehaviour
     private IEnumerator Dash()
     {
         isDashing = true;
-        lastDashTime = Time.time;
+        lastDashTime = Time.unscaledTime; // Unscaled so cooldown is real-time based
 
         // Dash direction = current input
         // Use last movement direction if input is zero
@@ -199,12 +201,45 @@ public class PlayerController : MonoBehaviour
         // ---- PLAY DASH SOUND ----
         AudioManager.Instance.PlaySFX(SFXType.Dash);
 
-        // ---- DASH MOVEMENT ----
-        float startTime = Time.time;
-
-        while (Time.time < startTime + dashDuration)
+        // ---- CHECK FOR VITAL VIEW (ZZZ-style dodge) ----
+        // If any enemy is in its warning window, dashing triggers bullet time
+        EnemyCombat[] allEnemies = FindObjectsByType<EnemyCombat>(FindObjectsSortMode.None);
+        Debug.Log($"[VitalView] Dash! Scanning {allEnemies.Length} enemy/enemies for open ready window...");
+        bool vitalViewTriggered = false;
+        foreach (EnemyCombat ec in allEnemies)
         {
-            rb.MovePosition(rb.position + dashDirection * dashSpeed * Time.fixedDeltaTime);
+            Debug.Log($"[VitalView]   '{ec.gameObject.name}' -> IsInReadyWindow = {ec.IsInReadyWindow()}");
+            if (ec.IsInReadyWindow())
+            {
+                Debug.Log($"[VitalView] MATCH — triggering bullet time via '{ec.gameObject.name}'!");
+
+                if (GameManager.Instance != null)
+                    GameManager.Instance.TriggerVitalView();
+                else
+                    Debug.LogError("[VitalView] GameManager.Instance is NULL! Ensure a GameManager exists in the scene.");
+
+                PlayerHealth ph = GetComponent<PlayerHealth>();
+                if (ph != null)
+                    ph.SetTemporaryInvincible(1.2f); // real-time seconds — matches VitalView duration
+                else
+                    Debug.LogError("[VitalView] PlayerHealth component not found on this GameObject!");
+
+                vitalViewTriggered = true;
+                break; // one trigger per dash
+            }
+        }
+        if (!vitalViewTriggered)
+            Debug.Log("[VitalView] No enemy in ready window — normal dash.");
+
+        // ---- DASH MOVEMENT (unscaled-time aware) ----
+        // Use unscaled time for loop so dash completes in correct real seconds
+        // even when bullet time is active (otherwise scaled Time.time would stretch the dash)
+        float startTime = Time.unscaledTime;
+        while (Time.unscaledTime < startTime + dashDuration)
+        {
+            bool inBulletTime = GameManager.Instance != null && GameManager.Instance.IsVitalViewActive();
+            float dt = inBulletTime ? Time.unscaledDeltaTime : Time.fixedDeltaTime;
+            rb.MovePosition(rb.position + dashDirection * dashSpeed * dt);
             yield return new WaitForFixedUpdate();
         }
 
