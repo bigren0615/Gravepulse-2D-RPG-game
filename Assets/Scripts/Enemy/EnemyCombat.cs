@@ -42,7 +42,8 @@ public class EnemyCombat : MonoBehaviour
     private bool isInCombatMode = false; // New: Combat mode (close range) vs chase mode
     private bool isAttacking = false;
     private bool hasHitPlayerThisAttack = false;
-    private bool isReadyWindowOpen = false; // True during warning phase (dodge window for Vital View)
+    private bool isReadyWindowOpen = false; // True during warning phase (dodge/parry window)
+    private bool isParryable = false;         // True when current attack shows yellow indicator (can be parried)
 
     // Attack timing
     private Coroutine attackCoroutine;
@@ -252,7 +253,7 @@ public class EnemyCombat : MonoBehaviour
     private void ReadyAttack()
     {
         // Randomly decide if this attack is parryable (yellow) or just dodgeable (red)
-        bool isParryable = Random.value > 0.5f;
+        isParryable = Random.value > 0.5f;
 
         Debug.Log($"{gameObject.name}: Enemy ready to attack! {(isParryable ? "PARRY (Yellow)" : "DODGE (Red)")}");
 
@@ -652,6 +653,38 @@ public class EnemyCombat : MonoBehaviour
     /// True during the warning window — player can trigger Vital View by dashing now
     /// </summary>
     public bool IsInReadyWindow() => isReadyWindowOpen;
+
+    /// <summary>
+    /// True when the current ready-attack shows a yellow indicator (parryable by pressing Space).
+    /// </summary>
+    public bool IsParryable() => isParryable;
+
+    /// <summary>
+    /// Called by PlayerController when the player presses Space during the ready window.
+    /// Returns true on success (yellow window open). Cancels the hit and staggers the enemy.
+    /// </summary>
+    public bool TryParry()
+    {
+        if (!isReadyWindowOpen || !isParryable)
+            return false;
+
+        // Close the window so dashing no longer triggers VitalView for this attack
+        isReadyWindowOpen = false;
+
+        // Block AttackHit from dealing damage — attack animation still plays out naturally
+        hasHitPlayerThisAttack = true;
+
+        // Hide the warning indicator immediately
+        if (warningIndicator != null)
+            warningIndicator.SetActive(false);
+
+        // Trigger stagger animation on the enemy (wire "Parried" trigger in Unity Animator)
+        if (animator != null)
+            animator.SetTrigger("Parried");
+
+        Debug.Log($"{gameObject.name}: PARRIED! Attack nullified.");
+        return true;
+    }
 
     private void OnDestroy()
     {

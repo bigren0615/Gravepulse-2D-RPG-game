@@ -89,6 +89,12 @@ public class PlayerController : MonoBehaviour
             }
         }
 
+        // Parry input (Space) — succeeds only when an enemy shows a yellow warning indicator
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            AttemptParry();
+        }
+
         ReadInput();
         UpdateAnimation();
 
@@ -286,6 +292,28 @@ public class PlayerController : MonoBehaviour
         lastAttackTime = Time.unscaledTime;
         animator.SetTrigger("Attack");
         AudioManager.Instance.PlayRandomSFX(attackSwooshs);
+    }
+
+    // Parry attempt: press Space during an enemy's yellow (parryable) warning window
+    private void AttemptParry()
+    {
+        EnemyCombat[] allEnemies = FindObjectsByType<EnemyCombat>(FindObjectsSortMode.None);
+        foreach (EnemyCombat ec in allEnemies)
+        {
+            if (ec.IsInReadyWindow() && ec.IsParryable())
+            {
+                if (ec.TryParry())
+                {
+                    // Successful parry!
+                    AudioManager.Instance?.PlaySFX(SFXType.Clash);
+                    GameManager.Instance?.TriggerHitstop();
+                    animator.SetTrigger("Parry"); // Requires "Parry" trigger wired in Player Animator
+                    Debug.Log("[Parry] SUCCESS!");
+                    return;
+                }
+            }
+        }
+        Debug.Log("[Parry] No parryable window open — whiff.");
     }
 
     // Called by animation event at the start of the attack animation

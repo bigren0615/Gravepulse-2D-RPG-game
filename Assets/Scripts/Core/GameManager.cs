@@ -29,6 +29,77 @@ public class GameManager : MonoBehaviour
 
     public bool IsVitalViewActive() => isVitalViewActive;
 
+    // ===== HITSTOP (parry impact freeze) =====
+    private Coroutine hitstopCoroutine;
+    private Canvas hitstopCanvas;
+    private UnityEngine.UI.Image hitstopFlash; // bright white burst on parry impact
+
+    /// <summary>
+    /// Parry hitstop: freeze time completely for a brief instant + white impact flash.
+    /// Distinct from Vital View — no slow-motion, just a hard freeze then immediate resume.
+    /// </summary>
+    public void TriggerHitstop(float freezeDuration = 0.1f)
+    {
+        if (isVitalViewActive) return; // Don't stack with bullet time
+        if (hitstopCoroutine != null)
+            StopCoroutine(hitstopCoroutine);
+        hitstopCoroutine = StartCoroutine(HitstopCoroutine(freezeDuration));
+    }
+
+    private IEnumerator HitstopCoroutine(float duration)
+    {
+        Time.timeScale = 0f;
+        Time.fixedDeltaTime = 0f;
+
+        EnsureHitstopOverlay();
+        if (hitstopFlash != null)
+            hitstopFlash.color = new Color(1f, 1f, 1f, 0.65f);
+
+        yield return new WaitForSecondsRealtime(duration);
+
+        Time.timeScale = 1f;
+        Time.fixedDeltaTime = 0.02f;
+
+        // Fade flash out after the freeze lifts
+        if (hitstopFlash != null)
+        {
+            float elapsed = 0f;
+            const float fadeDur = 0.12f;
+            while (elapsed < fadeDur)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float a = Mathf.Lerp(0.65f, 0f, elapsed / fadeDur);
+                hitstopFlash.color = new Color(1f, 1f, 1f, a);
+                yield return null;
+            }
+            hitstopFlash.color = new Color(1f, 1f, 1f, 0f);
+        }
+        hitstopCoroutine = null;
+    }
+
+    private void EnsureHitstopOverlay()
+    {
+        if (hitstopCanvas != null) return;
+
+        GameObject canvasGO = new GameObject("HitstopCanvas");
+        DontDestroyOnLoad(canvasGO);
+        hitstopCanvas = canvasGO.AddComponent<Canvas>();
+        hitstopCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        hitstopCanvas.sortingOrder = 1000; // Above VitalView (999)
+        canvasGO.AddComponent<UnityEngine.UI.CanvasScaler>();
+
+        GameObject flashGO = new GameObject("Hitstop_Flash");
+        flashGO.transform.SetParent(canvasGO.transform, false);
+        hitstopFlash = flashGO.AddComponent<UnityEngine.UI.Image>();
+        hitstopFlash.raycastTarget = false;
+        hitstopFlash.color = new Color(1f, 1f, 1f, 0f);
+        RectTransform rt = hitstopFlash.rectTransform;
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+    }
+
     /// <summary>
     /// Trigger ZZZ-style Vital View: slow time to slowScale for duration real seconds.
     /// Default 0.05 (5% speed) for 1.0s real time.
