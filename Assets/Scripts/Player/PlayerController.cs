@@ -322,6 +322,10 @@ public class PlayerController : MonoBehaviour
         if (!vitalViewTriggered)
             Debug.Log("[VitalView] No enemy in ready window — normal dash.");
 
+        // Phase through enemy bodies for the entire dash — enemies must not block or cage the player.
+        // Physics2D.IgnoreLayerCollision is global but immediately reversed at dash end / OnDisable.
+        SetEnemyCollisionIgnored(true);
+
         // ---- DASH MOVEMENT (unscaled-time aware, wall-collision safe) ----
         // Cast ahead each step so the dash stops at solid walls instead of tunnelling through them.
         ContactFilter2D dashFilter = new ContactFilter2D();
@@ -355,6 +359,7 @@ public class PlayerController : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
 
+        SetEnemyCollisionIgnored(false);
         isDashing = false;
     }
 
@@ -708,9 +713,30 @@ public class PlayerController : MonoBehaviour
         {
             if (overlaps[i] == null) continue;
             ColliderDistance2D dist = col.Distance(overlaps[i]);
-            // dist.distance is negative when overlapping; dist.normal points from wall toward player
-            if (dist.isOverlapped)
-                rb.MovePosition(rb.position + dist.normal * (-dist.distance + 0.005f));
+            // dist.distance is negative when overlapping; dist.normal points from wall toward player.
+            // Threshold 0.05 ignores normal wall-touching (≈0) which physics handles fine.
+            // Only fire for real tunnelling penetration (dashing into a wall), so Move() and
+            // DepenetrateFromSolids() never fight each other and cause the sticky-wall bug.
+            if (dist.distance < -0.05f)
+                rb.MovePosition(rb.position + dist.normal * -dist.distance);
         }
+    }
+
+    // Phases the player through all enemy-layer colliders.
+    // Called at dash start (ignore=true) and dash end (ignore=false).
+    // Physics2D.IgnoreLayerCollision is global but safely reversed — single-player, one dash at a time.
+    private void SetEnemyCollisionIgnored(bool ignore)
+    {
+        int playerLayer = gameObject.layer;
+        int maskValue = enemyLayer.value;
+        for (int i = 0; i < 32; i++)
+            if ((maskValue & (1 << i)) != 0)
+                Physics2D.IgnoreLayerCollision(playerLayer, i, ignore);
+    }
+
+    private void OnDisable()
+    {
+        // Safety net: restore enemy collision if the object is disabled or destroyed mid-dash.
+        SetEnemyCollisionIgnored(false);
     }
 }
