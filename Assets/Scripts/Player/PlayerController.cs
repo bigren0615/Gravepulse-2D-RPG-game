@@ -76,7 +76,8 @@ public class PlayerController : MonoBehaviour
         }
 
         // Attack input (LEFT CLICK or Z)
-        if (Time.time >= lastAttackTime + attackCooldown)
+        // Use unscaled time so the cooldown isn't stretched during Vital View bullet time
+        if (Time.unscaledTime >= lastAttackTime + attackCooldown)
         {
             if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Z))
             {
@@ -86,6 +87,10 @@ public class PlayerController : MonoBehaviour
 
         ReadInput();
         UpdateAnimation();
+
+        // Keep player animation running at full speed during Vital View bullet time
+        bool inVitalView = GameManager.Instance != null && GameManager.Instance.IsVitalViewActive();
+        animator.updateMode = inVitalView ? AnimatorUpdateMode.UnscaledTime : AnimatorUpdateMode.Normal;
     }
 
     private void FixedUpdate()
@@ -186,6 +191,10 @@ public class PlayerController : MonoBehaviour
             Animator vfxAnim = dashVFX.GetComponent<Animator>();
             if (vfxAnim != null)
             {
+                // Prevent dash effect from freezing during Vital View bullet time
+                if (GameManager.Instance != null && GameManager.Instance.IsVitalViewActive())
+                    vfxAnim.updateMode = AnimatorUpdateMode.UnscaledTime;
+
                 vfxAnim.Play(vfxAnim.runtimeAnimatorController.animationClips[0].name, 0, 0f);
 
                 // Destroy after animation length
@@ -249,7 +258,7 @@ public class PlayerController : MonoBehaviour
     // 5 Attack method to trigger attack animation and cooldown
     private void Attack()
     {
-        lastAttackTime = Time.time;
+        lastAttackTime = Time.unscaledTime;
         animator.SetTrigger("Attack");
         AudioManager.Instance.PlayRandomSFX(attackSwooshs);
     }
