@@ -49,6 +49,10 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb;
     private Animator animator;
 
+    // ---- Vital View afterimage trail ----
+    private Coroutine afterimageCoroutine;
+    private bool wasInVitalView;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -91,6 +95,19 @@ public class PlayerController : MonoBehaviour
         // Keep player animation running at full speed during Vital View bullet time
         bool inVitalView = GameManager.Instance != null && GameManager.Instance.IsVitalViewActive();
         animator.updateMode = inVitalView ? AnimatorUpdateMode.UnscaledTime : AnimatorUpdateMode.Normal;
+
+        // Start/stop afterimage trail on VitalView edge transitions
+        if (inVitalView && !wasInVitalView)
+        {
+            if (afterimageCoroutine != null) StopCoroutine(afterimageCoroutine);
+            afterimageCoroutine = StartCoroutine(AfterimageLoop());
+        }
+        else if (!inVitalView && wasInVitalView && afterimageCoroutine != null)
+        {
+            StopCoroutine(afterimageCoroutine);
+            afterimageCoroutine = null;
+        }
+        wasInVitalView = inVitalView;
     }
 
     private void FixedUpdate()
@@ -426,6 +443,54 @@ public class PlayerController : MonoBehaviour
             Gizmos.DrawLine(previousPoint, point);
             previousPoint = point;
         }
+    }
+
+    // ---- Vital View afterimage trail methods ----
+
+    private IEnumerator AfterimageLoop()
+    {
+        while (GameManager.Instance != null && GameManager.Instance.IsVitalViewActive())
+        {
+            SpawnAfterimage();
+            yield return new WaitForSecondsRealtime(0.05f); // ~20 ghosts/second in real time
+        }
+        afterimageCoroutine = null;
+    }
+
+    private void SpawnAfterimage()
+    {
+        if (spriteRenderer == null || spriteRenderer.sprite == null) return;
+
+        GameObject ghost = new GameObject("VV_Afterimage");
+        ghost.transform.position  = transform.position;
+        ghost.transform.rotation  = transform.rotation;
+        ghost.transform.localScale = transform.localScale;
+
+        SpriteRenderer ghostSR = ghost.AddComponent<SpriteRenderer>();
+        ghostSR.sprite           = spriteRenderer.sprite;
+        ghostSR.flipX            = spriteRenderer.flipX;
+        ghostSR.flipY            = spriteRenderer.flipY;
+        ghostSR.sortingLayerName = spriteRenderer.sortingLayerName;
+        ghostSR.sortingOrder     = spriteRenderer.sortingOrder - 1; // always just behind player
+        ghostSR.color            = new Color(1f, 0.75f, 0.3f, 0.65f); // warm orange, semi-transparent
+
+        StartCoroutine(FadeAfterimage(ghostSR, 0.22f));
+    }
+
+    private IEnumerator FadeAfterimage(SpriteRenderer sr, float duration)
+    {
+        float startAlpha = sr.color.a;
+        Color c = sr.color;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            if (sr == null) yield break;
+            elapsed += Time.unscaledDeltaTime;
+            c.a = Mathf.Lerp(startAlpha, 0f, elapsed / duration);
+            sr.color = c;
+            yield return null;
+        }
+        if (sr != null) Destroy(sr.gameObject);
     }
 
     // Helper function to rotate a vector by an angle
