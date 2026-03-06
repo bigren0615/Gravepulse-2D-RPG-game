@@ -191,9 +191,9 @@ public class PlayerController : MonoBehaviour
             Animator vfxAnim = dashVFX.GetComponent<Animator>();
             if (vfxAnim != null)
             {
-                // Prevent dash effect from freezing during Vital View bullet time
-                if (GameManager.Instance != null && GameManager.Instance.IsVitalViewActive())
-                    vfxAnim.updateMode = AnimatorUpdateMode.UnscaledTime;
+                // Always use unscaled time — harmless at normal speed, prevents freezing during Vital View.
+                // (The VFX spawns before TriggerVitalView() is called, so checking IsVitalViewActive() here is always false.)
+                vfxAnim.updateMode = AnimatorUpdateMode.UnscaledTime;
 
                 vfxAnim.Play(vfxAnim.runtimeAnimatorController.animationClips[0].name, 0, 0f);
 
