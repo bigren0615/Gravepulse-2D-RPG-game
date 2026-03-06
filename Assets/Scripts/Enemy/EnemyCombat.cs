@@ -271,8 +271,6 @@ public class EnemyCombat : MonoBehaviour
         // Cache child transforms
         Transform h = warningIndicator.transform.Find("H_Streak");
         Transform v = warningIndicator.transform.Find("V_Streak");
-        Transform d1 = warningIndicator.transform.Find("Diag_A");
-        Transform d2 = warningIndicator.transform.Find("Diag_B");
         Transform core = warningIndicator.transform.Find("CoreDot");
 
         SpriteRenderer[] renderers = warningIndicator.GetComponentsInChildren<SpriteRenderer>();
@@ -303,15 +301,10 @@ public class EnemyCombat : MonoBehaviour
             float scale = Mathf.Lerp(0f, 1f + Mathf.Sin(t * Mathf.PI) * 0.25f, 1f);
             warningIndicator.transform.localScale = new Vector3(scale, scale, 1);
 
-            // ===== STREAKS =====
-            if (h) h.localScale = new Vector3(Mathf.Lerp(0.2f, 2.4f, t), 0.09f, 1);
-            if (v) v.localScale = new Vector3(Mathf.Lerp(0.2f, 1.5f, t * 0.9f), 0.07f, 1);
-            if (t > 0.1f)
-            {
-                float dt = (t - 0.1f) / 0.9f;
-                if (d1) d1.localScale = new Vector3(Mathf.Lerp(0.1f, 0.9f, dt), 0.05f, 1);
-                if (d2) d2.localScale = new Vector3(Mathf.Lerp(0.1f, 0.9f, dt), 0.05f, 1);
-            }
+            // ===== STREAKS (4-direction cross, symmetric H and V) =====
+            float streakLen = Mathf.Lerp(0.2f, 2.4f, t);
+            if (h) h.localScale = new Vector3(streakLen, 0.09f, 1);
+            if (v) v.localScale = new Vector3(streakLen, 0.09f, 1);
 
             // ===== CORE PULSE =====
             if (core)
@@ -348,17 +341,16 @@ public class EnemyCombat : MonoBehaviour
         Shader addShader = Shader.Find("Sprites/Additive") ?? Shader.Find("Particles/Additive") ?? Shader.Find("Sprites/Default");
         Material addMat = new Material(addShader);
 
-        // Generate streak sprite
-        Sprite streak = MakeGradientSprite(true, 16); // PPU=16 for bigger streaks
+        // Separate sprites: streak for arms, radial circle for core
+        Sprite streak = MakeGradientSprite(true, 16);   // PPU=16 for bigger streaks
+        Sprite circle = MakeGradientSprite(false, 32);  // Radial gradient for center dot
 
-        // Add streaks with zero initial scale
+        // 4-direction cross only (no diagonals) — clean ZZZ-style +
         AddGlintChild(root, "H_Streak", streak, Vector3.zero, Quaternion.identity, Vector3.zero, addMat, 100);
         AddGlintChild(root, "V_Streak", streak, Vector3.zero, Quaternion.Euler(0f, 0f, 90f), Vector3.zero, addMat, 100);
-        AddGlintChild(root, "Diag_A", streak, Vector3.zero, Quaternion.Euler(0f, 0f, 45f), Vector3.zero, addMat, 100);
-        AddGlintChild(root, "Diag_B", streak, Vector3.zero, Quaternion.Euler(0f, 0f, -45f), Vector3.zero, addMat, 100);
 
-        // Add core dot
-        AddGlintChild(root, "CoreDot", streak, Vector3.zero, Quaternion.identity, Vector3.zero, addMat, 101);
+        // Core dot uses radial gradient (circle), not streak
+        AddGlintChild(root, "CoreDot", circle, Vector3.zero, Quaternion.identity, Vector3.zero, addMat, 101);
 
         return root;
     }
@@ -398,9 +390,11 @@ public class EnemyCombat : MonoBehaviour
                 if (isStreak)
                 {
                     float xT = Mathf.Abs((x - half) / half);
-                    float xAlpha = Mathf.Pow(Mathf.Clamp01(1f - xT * 0.5f), 1.8f); // wider bright area
+                    // FIX: fade fully to 0 at tips (old formula kept 28% brightness at edges → square look)
+                    float xAlpha = Mathf.Pow(Mathf.Clamp01(1f - xT), 3f);
                     float yT = Mathf.Abs((y - half) / half);
-                    float yAlpha = Mathf.Pow(Mathf.Clamp01(1f - yT), 0.4f); // keep streak thin vertically
+                    // FIX: tighter falloff (old power 0.4 was almost flat, making a fat rectangle)
+                    float yAlpha = Mathf.Pow(Mathf.Clamp01(1f - yT), 1.5f);
                     a = xAlpha * yAlpha;
                 }
                 else
