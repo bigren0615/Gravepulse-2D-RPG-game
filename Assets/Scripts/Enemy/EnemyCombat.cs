@@ -246,21 +246,29 @@ public class EnemyCombat : MonoBehaviour
 
         Debug.Log($"{gameObject.name}: Enemy ready to attack! {(isParryable ? "PARRY (Yellow)" : "DODGE (Red)")}");
 
+        // Stop previous warning if running
         if (warningCoroutine != null)
         {
             StopCoroutine(warningCoroutine);
         }
+
+        // Build indicator if first time
+        if (warningIndicator == null)
+            warningIndicator = BuildGlintIndicator();
+
+        // Start invisible (scale 0) before animation
+        warningIndicator.transform.localScale = Vector3.zero;
+        warningIndicator.SetActive(true);
+
         warningCoroutine = StartCoroutine(ShowWarningIndicator(isParryable, readyAttackWarningTime));
     }
 
     private IEnumerator ShowWarningIndicator(bool isParryable, float duration)
     {
         if (warningIndicator == null)
-            warningIndicator = BuildGlintIndicator();
+            yield break;
 
-        warningIndicator.SetActive(true);
-
-        Transform ambient = warningIndicator.transform.Find("AmbientGlow");
+        // Cache child transforms
         Transform h = warningIndicator.transform.Find("H_Streak");
         Transform v = warningIndicator.transform.Find("V_Streak");
         Transform d1 = warningIndicator.transform.Find("Diag_A");
@@ -270,8 +278,8 @@ public class EnemyCombat : MonoBehaviour
         SpriteRenderer[] renderers = warningIndicator.GetComponentsInChildren<SpriteRenderer>();
 
         Color baseColor = isParryable
-            ? new Color(1f, 0.85f, 0.05f)
-            : new Color(1f, 0.1f, 0.1f);
+            ? new Color(1f, 0.85f, 0.05f)  // yellow
+            : new Color(1f, 0.1f, 0.1f);   // red
 
         float elapsed = 0f;
 
@@ -283,44 +291,39 @@ public class EnemyCombat : MonoBehaviour
             // ===== LIGHT CURVE =====
             float brightness;
             if (t < 0.25f)
-            {
-                brightness = Mathf.Pow(t / 0.25f, 0.5f) * 1.6f; // overshoot flash
-            }
+                brightness = Mathf.Pow(t / 0.25f, 0.5f) * 1.6f;
             else if (t < 0.6f)
-            {
                 brightness = 1.2f;
-            }
             else
-            {
                 brightness = Mathf.Lerp(1.2f, 0f, (t - 0.6f) / 0.4f);
-            }
 
             float alpha = Mathf.Clamp01(brightness);
 
             // ===== SCALE BURST =====
-            float scale = 1f + Mathf.Sin(t * Mathf.PI) * 0.25f;
-
+            float scale = Mathf.Lerp(0f, 1f + Mathf.Sin(t * Mathf.PI) * 0.25f, 1f);
             warningIndicator.transform.localScale = new Vector3(scale, scale, 1);
 
-            // ===== LAYER TIMING =====
-            h.localScale = new Vector3(Mathf.Lerp(0.2f, 2.4f, t), 0.09f, 1);
-            v.localScale = new Vector3(Mathf.Lerp(0.2f, 1.5f, t * 0.9f), 0.07f, 1);
-
+            // ===== STREAKS =====
+            if (h) h.localScale = new Vector3(Mathf.Lerp(0.2f, 2.4f, t), 0.09f, 1);
+            if (v) v.localScale = new Vector3(Mathf.Lerp(0.2f, 1.5f, t * 0.9f), 0.07f, 1);
             if (t > 0.1f)
             {
                 float dt = (t - 0.1f) / 0.9f;
-                d1.localScale = new Vector3(Mathf.Lerp(0.1f, 0.9f, dt), 0.05f, 1);
-                d2.localScale = new Vector3(Mathf.Lerp(0.1f, 0.9f, dt), 0.05f, 1);
+                if (d1) d1.localScale = new Vector3(Mathf.Lerp(0.1f, 0.9f, dt), 0.05f, 1);
+                if (d2) d2.localScale = new Vector3(Mathf.Lerp(0.1f, 0.9f, dt), 0.05f, 1);
             }
 
             // ===== CORE PULSE =====
-            float corePulse = 1f + Mathf.Sin(t * 30f) * 0.15f;
-            core.localScale = new Vector3(corePulse, corePulse, 1);
+            if (core)
+            {
+                float corePulse = 1f + Mathf.Sin(t * 30f) * 0.15f;
+                core.localScale = new Vector3(corePulse, corePulse, 1);
+            }
 
+            // Apply color with alpha
             foreach (var sr in renderers)
             {
-                Color c = baseColor;
-                sr.color = new Color(c.r, c.g, c.b, alpha);
+                if (sr) sr.color = new Color(baseColor.r, baseColor.g, baseColor.b, alpha);
             }
 
             yield return null;
@@ -338,78 +341,30 @@ public class EnemyCombat : MonoBehaviour
         GameObject root = new GameObject("AttackWarningIndicator");
         root.transform.SetParent(transform);
         root.transform.localRotation = Quaternion.identity;
-
-        SpriteRenderer enemySr = GetComponent<SpriteRenderer>();
-        root.transform.localPosition = Vector3.zero;
+        root.transform.localPosition = Vector3.zero; // center on enemy
+        root.transform.localScale = Vector3.zero;    // start invisible
 
         // Additive light shader
-        Shader addShader = Shader.Find("Sprites/Additive");
-        if (addShader == null) addShader = Shader.Find("Particles/Additive");
-        if (addShader == null) addShader = Shader.Find("Sprites/Default");
-
+        Shader addShader = Shader.Find("Sprites/Additive") ?? Shader.Find("Particles/Additive") ?? Shader.Find("Sprites/Default");
         Material addMat = new Material(addShader);
 
-        Sprite circle = MakeGradientSprite(false);
-        Sprite streak = MakeGradientSprite(true);
+        // Generate streak sprite
+        Sprite streak = MakeGradientSprite(true, 16); // PPU=16 for bigger streaks
 
-        // SMALL ambient glow in the center
-        AddGlintChild(root, "AmbientGlow",
-            circle,
-            Vector3.zero,
-            Quaternion.identity,
-            new Vector3(0.4f, 0.4f, 1f),   // much smaller
-            addMat,
-            98);
+        // Add streaks with zero initial scale
+        AddGlintChild(root, "H_Streak", streak, Vector3.zero, Quaternion.identity, Vector3.zero, addMat, 100);
+        AddGlintChild(root, "V_Streak", streak, Vector3.zero, Quaternion.Euler(0f, 0f, 90f), Vector3.zero, addMat, 100);
+        AddGlintChild(root, "Diag_A", streak, Vector3.zero, Quaternion.Euler(0f, 0f, 45f), Vector3.zero, addMat, 100);
+        AddGlintChild(root, "Diag_B", streak, Vector3.zero, Quaternion.Euler(0f, 0f, -45f), Vector3.zero, addMat, 100);
 
-        // MAIN horizontal streak (thicker and longer)
-        AddGlintChild(root, "H_Streak",
-            streak,
-            Vector3.zero,
-            Quaternion.identity,
-            new Vector3(6f, 0.15f, 1f),   // longer & thicker
-            addMat,
-            100);
-
-        // vertical streak (thicker and longer)
-        AddGlintChild(root, "V_Streak",
-            streak,
-            Vector3.zero,
-            Quaternion.Euler(0f, 0f, 90f),
-            new Vector3(5.2f, 0.15f, 1f), // longer & thicker
-            addMat,
-            100);
-
-        // diagonal rays (thicker and longer)
-        AddGlintChild(root, "Diag_A",
-            streak,
-            Vector3.zero,
-            Quaternion.Euler(0f, 0f, 45f),
-            new Vector3(4.6f, 0.12f, 1f), // longer & thicker
-            addMat,
-            100);
-
-        AddGlintChild(root, "Diag_B",
-            streak,
-            Vector3.zero,
-            Quaternion.Euler(0f, 0f, -45f),
-            new Vector3(4.6f, 0.12f, 1f), // longer & thicker
-            addMat,
-            100);
-
-        // core dot in the middle - small
-        AddGlintChild(root, "CoreDot",
-            circle,
-            Vector3.zero,
-            Quaternion.identity,
-            new Vector3(0.1f, 0.1f, 1f), // tiny
-            addMat,
-            103);
+        // Add core dot
+        AddGlintChild(root, "CoreDot", streak, Vector3.zero, Quaternion.identity, Vector3.zero, addMat, 101);
 
         return root;
     }
 
     private void AddGlintChild(GameObject parent, string childName, Sprite sprite,
-        Vector3 localPos, Quaternion localRot, Vector3 localScale, Material mat, int sortOrder)
+     Vector3 localPos, Quaternion localRot, Vector3 localScale, Material mat, int sortOrder)
     {
         GameObject go = new GameObject(childName);
         go.transform.SetParent(parent.transform);
@@ -427,7 +382,7 @@ public class EnemyCombat : MonoBehaviour
     /// isStreak=false → radial circle falloff (center bright, edge transparent).
     /// isStreak=true  → horizontal streak (bright at center-X, fades at tips; tight vertical).
     /// </summary>
-    private Sprite MakeGradientSprite(bool isStreak)
+    private Sprite MakeGradientSprite(bool isStreak, float pixelsPerUnit = 64)
     {
         const int size = 64;
         Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
@@ -442,12 +397,10 @@ public class EnemyCombat : MonoBehaviour
                 float a;
                 if (isStreak)
                 {
-                    // xAlpha: bright at center-X, fades toward tips (controls streak length)
                     float xT = Mathf.Abs((x - half) / half);
-                    float xAlpha = Mathf.Pow(Mathf.Clamp01(1f - xT), 1.8f);
-                    // yAlpha: very soft vertical falloff keeps the streak narrow but not hard-edged
+                    float xAlpha = Mathf.Pow(Mathf.Clamp01(1f - xT * 0.5f), 1.8f); // wider bright area
                     float yT = Mathf.Abs((y - half) / half);
-                    float yAlpha = Mathf.Pow(Mathf.Clamp01(1f - yT), 0.4f);
+                    float yAlpha = Mathf.Pow(Mathf.Clamp01(1f - yT), 0.4f); // keep streak thin vertically
                     a = xAlpha * yAlpha;
                 }
                 else
@@ -461,7 +414,7 @@ public class EnemyCombat : MonoBehaviour
             }
         }
         tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), pixelsPerUnit);
     }
 
     /// <summary>
