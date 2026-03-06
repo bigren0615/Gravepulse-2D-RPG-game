@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.PostProcessing;
 
 public class GameManager : MonoBehaviour
 {
@@ -14,18 +15,26 @@ public class GameManager : MonoBehaviour
     private bool isVitalViewActive = false;
     private Coroutine vitalViewCoroutine;
 
-    // Screen overlay for Vital View visual feedback (created at runtime, no prefab needed)
+    // Canvas overlay elements (created at runtime, no prefab needed)
     private Canvas vitalViewCanvas;
-    private UnityEngine.UI.Image vitalViewOverlay;
+    private UnityEngine.UI.Image vitalViewFlash;        // warm orange/white burst on activation
+    private UnityEngine.UI.RawImage vitalViewScanLines; // subtle scan-line pattern
+    private Coroutine vvOverlayCoroutine;
+
+    // Post-processing runtime volume (ZZZ desaturation + vignette + chromatic aberration)
+    private PostProcessVolume vvPPVolume;
+    private ColorGrading vvColorGrading;
+    private Vignette vvVignette;
+    private ChromaticAberration vvCA;
 
     public bool IsVitalViewActive() => isVitalViewActive;
 
     /// <summary>
     /// Trigger ZZZ-style Vital View: slow time to slowScale for duration real seconds.
-    /// Default 0.05 (5% speed) for 1.2s is very dramatic and impossible to miss.
+    /// Default 0.05 (5% speed) for 1.0s real time.
     /// Player movement is unaffected (PlayerController uses unscaled delta when active).
     /// </summary>
-    public void TriggerVitalView(float duration = 1.2f, float slowScale = 0.05f)
+    public void TriggerVitalView(float duration = 0.5f, float slowScale = 0.05f)
     {
         if (isVitalViewActive) return; // Already active, no stacking
         if (vitalViewCoroutine != null)
@@ -45,9 +54,10 @@ public class GameManager : MonoBehaviour
         if (AudioManager.Instance != null)
             AudioManager.Instance.SetAllMusicPitch(slowScale);
 
-        // Show blue screen flash overlay
+        // Show ZZZ-style screen overlay (desaturate + vignette + orange flash + scan-lines)
         EnsureVitalViewOverlay();
-        StartCoroutine(AnimateVitalViewOverlay(duration));
+        if (vvOverlayCoroutine != null) StopCoroutine(vvOverlayCoroutine);
+        vvOverlayCoroutine = StartCoroutine(AnimateVitalViewOverlay(duration));
 
         yield return new WaitForSecondsRealtime(duration);
 
@@ -66,72 +76,165 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Creates a full-screen semi-transparent canvas overlay (once, lazily).
-    /// No prefab required — built entirely at runtime.
+    /// ZZZ-style overlay setup: Canvas (flash + scan-lines) + runtime PostProcess volume.
+    /// Created lazily on first Vital View trigger; both persist and are reused.
     /// </summary>
     private void EnsureVitalViewOverlay()
     {
-        if (vitalViewCanvas != null) return;
+        // ---- Canvas elements ----
+        if (vitalViewCanvas == null)
+        {
+            GameObject canvasGO = new GameObject("VitalViewCanvas");
+            DontDestroyOnLoad(canvasGO);
 
-        GameObject canvasGO = new GameObject("VitalViewCanvas");
-        DontDestroyOnLoad(canvasGO);
+            vitalViewCanvas = canvasGO.AddComponent<Canvas>();
+            vitalViewCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            vitalViewCanvas.sortingOrder = 999; // Always on top
+            canvasGO.AddComponent<UnityEngine.UI.CanvasScaler>();
 
-        vitalViewCanvas = canvasGO.AddComponent<Canvas>();
-        vitalViewCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        vitalViewCanvas.sortingOrder = 999; // Always on top
+            // --- Flash image: warm orange/white burst on activation ---
+            GameObject flashGO = new GameObject("VV_Flash");
+            flashGO.transform.SetParent(canvasGO.transform, false);
+            vitalViewFlash = flashGO.AddComponent<UnityEngine.UI.Image>();
+            vitalViewFlash.raycastTarget = false;
+            vitalViewFlash.color = new Color(1f, 0.72f, 0.2f, 0f);
+            RectTransform flashRT = vitalViewFlash.rectTransform;
+            flashRT.anchorMin = Vector2.zero;
+            flashRT.anchorMax = Vector2.one;
+            flashRT.offsetMin = Vector2.zero;
+            flashRT.offsetMax = Vector2.zero;
 
-        // Full-screen image child
-        GameObject imgGO = new GameObject("Overlay");
-        imgGO.transform.SetParent(canvasGO.transform, false);
+            // --- Scan-lines: subtle digital pattern that holds during bullet time ---
+            GameObject scanGO = new GameObject("VV_ScanLines");
+            scanGO.transform.SetParent(canvasGO.transform, false);
+            vitalViewScanLines = scanGO.AddComponent<UnityEngine.UI.RawImage>();
+            vitalViewScanLines.raycastTarget = false;
+            vitalViewScanLines.color = new Color(0f, 0f, 0f, 0f);
+            vitalViewScanLines.texture = CreateScanLineTexture();
+            RectTransform scanRT = vitalViewScanLines.rectTransform;
+            scanRT.anchorMin = Vector2.zero;
+            scanRT.anchorMax = Vector2.one;
+            scanRT.offsetMin = Vector2.zero;
+            scanRT.offsetMax = Vector2.zero;
+        }
 
-        vitalViewOverlay = imgGO.AddComponent<UnityEngine.UI.Image>();
-        vitalViewOverlay.raycastTarget = false; // Don't block clicks
-        vitalViewOverlay.color = new Color(0.1f, 0.45f, 1f, 0f); // blue tint, starts transparent
+        // ---- Post-processing volume ----
+        if (vvPPVolume == null)
+        {
+            vvColorGrading = ScriptableObject.CreateInstance<ColorGrading>();
+            vvColorGrading.enabled.Override(true);
+            vvColorGrading.saturation.Override(-45f);     // muted colours, not full grayscale
+            vvColorGrading.temperature.Override(18f);     // faint warm tone
+            vvColorGrading.postExposure.Override(-0.25f); // slightly darker
 
-        // Stretch to fill entire screen
-        RectTransform rt = vitalViewOverlay.rectTransform;
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.one;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
+            vvVignette = ScriptableObject.CreateInstance<Vignette>();
+            vvVignette.enabled.Override(true);
+            vvVignette.color.Override(Color.black);
+            vvVignette.intensity.Override(0.25f);   // soft dark corners only
+            vvVignette.smoothness.Override(0.70f);  // high smoothness = soft gradual falloff
+            vvVignette.rounded.Override(true);
+
+            vvCA = ScriptableObject.CreateInstance<ChromaticAberration>();
+            vvCA.enabled.Override(true);
+            vvCA.intensity.Override(0f);
+
+            vvPPVolume = PostProcessManager.instance.QuickVolume(
+                gameObject.layer, 100f, vvColorGrading, vvVignette, vvCA);
+            vvPPVolume.weight = 0f;
+            DontDestroyOnLoad(vvPPVolume.gameObject);
+        }
+    }
+
+    /// <summary>Creates a 1×4 Texture2D with alternating opaque/transparent rows for scan-lines.</summary>
+    private Texture2D CreateScanLineTexture()
+    {
+        var tex = new Texture2D(1, 4, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Point;
+        tex.wrapMode = TextureWrapMode.Repeat;
+        tex.SetPixels(new[]
+        {
+            new Color(0f, 0f, 0f, 0f),
+            new Color(0f, 0f, 0f, 0f),
+            new Color(0f, 0f, 0f, 0.25f),
+            new Color(0f, 0f, 0f, 0.25f)
+        });
+        tex.Apply();
+        return tex;
     }
 
     /// <summary>
-    /// Animates the Vital View screen overlay: instant blue flash, then slow fade out.
-    /// Uses unscaled time so the animation is unaffected by our own time slowdown.
+    /// ZZZ-style Vital View animation: four phases driven by unscaled time.
+    ///   Phase 1 (~0.06s)   — Snap: orange flash spikes, PP desaturates, CA glitch peaks
+    ///   Phase 2 (25% dur)  — Flash fades quickly; CA fades; scan-lines + PP hold
+    ///   Phase 3 (40% dur)  — Hold: world stays desaturated + dark vignette + scan-lines
+    ///   Phase 4 (30% dur)  — Gradual fade: PP weight 1→0, scan-lines fade
     /// </summary>
     private IEnumerator AnimateVitalViewOverlay(float duration)
     {
-        if (vitalViewOverlay == null) yield break;
+        if (vitalViewFlash == null || vitalViewScanLines == null || vvPPVolume == null)
+            yield break;
 
-        const float peakAlpha = 0.30f;
-        const float flashInTime = 0.07f; // snap-in
+        const float flashSnapTime  = 0.06f;
+        const float flashPeakAlpha = 0.50f;
+        const float caPeak         = 0.80f;
+        const float scanAlpha      = 0.18f;
 
-        // Snap blue overlay in
+        // Tile scan-lines to screen resolution (4 px per period)
+        vitalViewScanLines.uvRect = new Rect(0f, 0f, 1f, Screen.height / 4f);
+
+        // ── Phase 1: Snap-in ──
         float e = 0f;
-        while (e < flashInTime)
+        while (e < flashSnapTime)
         {
             e += Time.unscaledDeltaTime;
-            vitalViewOverlay.color = new Color(0.1f, 0.45f, 1f,
-                Mathf.Lerp(0f, peakAlpha, e / flashInTime));
+            float t = Mathf.Clamp01(e / flashSnapTime);
+            vitalViewFlash.color      = new Color(1f, 0.72f, 0.2f, Mathf.Lerp(0f, flashPeakAlpha, t));
+            vitalViewScanLines.color  = new Color(0f, 0f, 0f,       Mathf.Lerp(0f, scanAlpha, t));
+            vvPPVolume.weight         = Mathf.Lerp(0f, 1f, t);
+            vvCA.intensity.Override(Mathf.Lerp(0f, caPeak, t));
             yield return null;
         }
+        vitalViewFlash.color     = new Color(1f, 0.72f, 0.2f, flashPeakAlpha);
+        vitalViewScanLines.color = new Color(0f, 0f, 0f, scanAlpha);
+        vvPPVolume.weight        = 1f;
+        vvCA.intensity.Override(caPeak);
 
-        // Brief hold
-        yield return new WaitForSecondsRealtime(duration * 0.2f);
-
-        // Fade out over the remaining duration
-        float fadeTime = duration * 0.7f;
+        // ── Phase 2: Flash & CA fade ──
+        float phase2 = duration * 0.25f;
         e = 0f;
-        while (e < fadeTime)
+        while (e < phase2)
         {
             e += Time.unscaledDeltaTime;
-            vitalViewOverlay.color = new Color(0.1f, 0.45f, 1f,
-                Mathf.Lerp(peakAlpha, 0f, e / fadeTime));
+            float tFlash = Mathf.Clamp01(e / (phase2 * 0.5f));  // flash gone at 50% of phase 2
+            float tCA    = Mathf.Clamp01(e / phase2);           // CA gone at end of phase 2
+            vitalViewFlash.color = new Color(1f, 0.72f, 0.2f, Mathf.Lerp(flashPeakAlpha, 0f, tFlash));
+            vvCA.intensity.Override(Mathf.Lerp(caPeak, 0f, tCA));
+            yield return null;
+        }
+        vitalViewFlash.color = new Color(1f, 0.72f, 0.2f, 0f);
+        vvCA.intensity.Override(0f);
+
+        // ── Phase 3: Hold (desaturation + vignette + scan-lines) ──
+        yield return new WaitForSecondsRealtime(duration * 0.40f);
+
+        // ── Phase 4: Fade everything out ──
+        float phase4 = duration * 0.30f;
+        e = 0f;
+        while (e < phase4)
+        {
+            e += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(e / phase4);
+            vvPPVolume.weight        = Mathf.Lerp(1f, 0f, t);
+            vitalViewScanLines.color = new Color(0f, 0f, 0f, Mathf.Lerp(scanAlpha, 0f, t));
             yield return null;
         }
 
-        vitalViewOverlay.color = new Color(0.1f, 0.45f, 1f, 0f);
+        // Ensure everything is cleanly reset
+        vvPPVolume.weight        = 0f;
+        vitalViewScanLines.color = new Color(0f, 0f, 0f, 0f);
+        vitalViewFlash.color     = new Color(1f, 0.72f, 0.2f, 0f);
+        vvCA.intensity.Override(0f);
+        vvOverlayCoroutine       = null;
     }
 
     private void Awake()

@@ -220,7 +220,7 @@ public class PlayerController : MonoBehaviour
 
                 PlayerHealth ph = GetComponent<PlayerHealth>();
                 if (ph != null)
-                    ph.SetTemporaryInvincible(1.2f); // real-time seconds — matches VitalView duration
+                    ph.SetTemporaryInvincible(1.0f); // real-time seconds — matches VitalView duration
                 else
                     Debug.LogError("[VitalView] PlayerHealth component not found on this GameObject!");
 
