@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚔️ TopDown Action RPG (WORK IN PROGRESS)
+# ⚔️ Gravepulse
 
 ### *2D Top-Down Real-Time Action RPG*
 
@@ -15,6 +15,8 @@
 
 ---
 
+<a id="play-online"></a>
+
 ## 🌐 Play Online
 
 > **Play the latest build directly in your browser — no download required!**
@@ -22,6 +24,8 @@
 🎮 **[Click here to play online](https://bigren0615.github.io/Gravepulse-2D-RPG-game/)**
 
 ---
+
+<a id="controls"></a>
 
 ## 🕹️ Controls
 
@@ -37,6 +41,25 @@
 
 ---
 
+## 📖 Menu
+
+> **Quick navigation — click any item to jump to that section.**
+
+- [🌐 Play Online](#play-online)
+- [🕹️ Controls](#controls)
+- [🎯 Design Pillars](#design-pillars)
+- [📊 Overall Progress](#overall-progress)
+- [📋 Update Log](#update-log)
+- [🗺️ Development Phases](#development-phases)
+- [⚔️ Core Feature Status](#core-feature-status)
+- [🗓️ Upcoming Phases](#upcoming-phases)
+- [📁 Project Structure](#project-structure)
+- [🎨 Credits & Assets](#credits--assets)
+
+---
+
+<a id="design-pillars"></a>
+
 ## 🎯 Design Pillars
 
 | ❌ What We Are NOT Building | ✅ What We ARE Building |
@@ -48,6 +71,8 @@
 
 ---
 
+<a id="overall-progress"></a>
+
 ## 📊 Overall Progress
 
 ```
@@ -55,6 +80,8 @@ Total Completion  ████████████████░░░░  
 ```
 
 ---
+
+<a id="update-log"></a>
 
 ## 📋 Update Log
 
@@ -72,6 +99,8 @@ Total Completion  ████████████████░░░░  
 - WebGL build deployed to GitHub Pages
 
 ---
+
+<a id="development-phases"></a>
 
 ## 🗺️ Development Phases
 
@@ -408,6 +437,8 @@ public class PlayerController : MonoBehaviour
 
 ---
 
+<a id="core-feature-status"></a>
+
 ## ⚔️ Core Feature Status
 
 ### 🕹️ Movement
@@ -549,6 +580,8 @@ public class PlayerController : MonoBehaviour
 
 ---
 
+<a id="upcoming-phases"></a>
+
 ## 🗓️ Upcoming Phases
 
 | Phase | Feature | Priority |
@@ -562,6 +595,8 @@ public class PlayerController : MonoBehaviour
 | **Phase 17** | Polish (combo system, screenshake, VFX) | 🟡 Low |
 
 ---
+
+<a id="project-structure"></a>
 
 ## 📁 Project Structure
 
@@ -655,6 +690,8 @@ Assets/
 ```
 
 ---
+
+<a id="credits--assets"></a>
 
 ## 🎨 Credits & Assets
 
