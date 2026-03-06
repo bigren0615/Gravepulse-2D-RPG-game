@@ -268,8 +268,8 @@ public class EnemyAI : MonoBehaviour
 
     private void ChasePlayer()
     {
-        // Don't chase while attacking - enemy must finish attack first
-        if (combat != null && combat.IsAttacking())
+        // Don't chase while attacking or staggered (post-parry)
+        if (combat != null && (combat.IsAttacking() || combat.IsStaggered()))
             return;
             
         GameObject player = controller.GetPlayer();

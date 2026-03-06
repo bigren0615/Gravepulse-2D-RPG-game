@@ -51,6 +51,7 @@ public class EnemyCombat : MonoBehaviour
     // Attack timing
     private Coroutine attackCoroutine;
     private float nextAttackTime = 0f;
+    private bool isStaggered = false; // True during post-parry stagger — blocks movement
 
     // Attack direction (stored when attack starts)
     private Vector2 attackDirection = Vector2.down;
@@ -650,6 +651,11 @@ public class EnemyCombat : MonoBehaviour
     public bool IsAttacking() => isAttacking;
 
     /// <summary>
+    /// True during post-parry stagger — enemy movement is suppressed.
+    /// </summary>
+    public bool IsStaggered() => isStaggered;
+
+    /// <summary>
     /// True during the warning window — player can trigger Vital View by dashing now
     /// </summary>
     public bool IsInReadyWindow() => isReadyWindowOpen;
@@ -693,6 +699,7 @@ public class EnemyCombat : MonoBehaviour
         }
 
         // Occupy attackCoroutine so UpdateCombatMode's guard blocks new attacks during stagger
+        isStaggered = true;
         attackCoroutine = StartCoroutine(ParryStaggerCoroutine());
 
         if (animator != null)
@@ -712,6 +719,7 @@ public class EnemyCombat : MonoBehaviour
         // After stagger, reset to a normal attack cooldown so the next
         // StartAttackSequence goes through the full warning flow.
         nextAttackTime = Time.time;
+        isStaggered = false;
         attackCoroutine = null;
     }
 
