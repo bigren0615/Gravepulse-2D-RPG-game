@@ -10,23 +10,23 @@ public class EnemyCombat : MonoBehaviour
     [Header("Combat Mode Settings")]
     [Tooltip("Distance from player to enter combat mode instead of chase mode")]
     public float combatModeRadius = 2f;
-    
+
     [Header("Attack Settings")]
     [Tooltip("Range where enemy can hit the player")]
     public float attackHitboxRadius = 1.2f;
-    
+
     [Tooltip("Minimum time between attacks")]
     public float minAttackInterval = 1f;
-    
+
     [Tooltip("Maximum time between attacks")]
     public float maxAttackInterval = 3f;
-    
+
     [Tooltip("Time before attack to call readyAttack (for dodge system)")]
     public float readyAttackWarningTime = 1f;
-    
+
     [Header("Attack Damage")]
     public float attackDamage = 10f;
-    
+
     [Header("Debug")]
     public bool showDebugGizmos = true;
 
@@ -42,11 +42,11 @@ public class EnemyCombat : MonoBehaviour
     private bool isInCombatMode = false; // New: Combat mode (close range) vs chase mode
     private bool isAttacking = false;
     private bool hasHitPlayerThisAttack = false;
-    
+
     // Attack timing
     private Coroutine attackCoroutine;
     private float nextAttackTime = 0f;
-    
+
     // Attack direction (stored when attack starts)
     private Vector2 attackDirection = Vector2.down;
 
@@ -57,7 +57,7 @@ public class EnemyCombat : MonoBehaviour
         enemyAI = GetComponent<EnemyAI>();
         animator = GetComponent<Animator>();
         player = controller.GetPlayer();
-        
+
         if (player == null)
         {
             player = GameObject.FindGameObjectWithTag("Player");
@@ -95,7 +95,7 @@ public class EnemyCombat : MonoBehaviour
     {
         // Only allow combat mode if enemy is actively chasing (has spotted player)
         bool isChasing = enemyAI != null && enemyAI.IsChasing();
-        
+
         if (!isChasing)
         {
             // Not chasing player - exit combat mode if in it
@@ -103,9 +103,9 @@ public class EnemyCombat : MonoBehaviour
                 ExitCombatMode();
             return;
         }
-        
+
         float distanceToPlayer = Vector2.Distance(transform.position, player.transform.position);
-        
+
         // Enter combat mode if within combat radius AND chasing player
         if (!isInCombatMode && distanceToPlayer <= combatModeRadius)
         {
@@ -146,7 +146,7 @@ public class EnemyCombat : MonoBehaviour
     private void EnterCombatMode()
     {
         isInCombatMode = true;
-        
+
         // DO NOT automatically enter combat state here!
         // Combat state should only be entered when:
         // 1. Enemy spots the player (OnPlayerSpotted in EnemyAI)
@@ -160,7 +160,7 @@ public class EnemyCombat : MonoBehaviour
     private void ExitCombatMode()
     {
         isInCombatMode = false;
-        
+
         // Attacks cannot be interrupted once they start
         // Even if player moves away, the attack sequence will complete naturally
         // No cancellation logic here - let animation events handle the full lifecycle
@@ -181,14 +181,14 @@ public class EnemyCombat : MonoBehaviour
     {
         // Calculate random attack interval
         float attackInterval = Random.Range(minAttackInterval, maxAttackInterval);
-        
+
         // Wait for ready warning time before signaling
         float delayBeforeReady = Mathf.Max(0f, attackInterval - readyAttackWarningTime);
         if (delayBeforeReady > 0f)
         {
             yield return new WaitForSeconds(delayBeforeReady);
         }
-        
+
         // Once attack sequence starts, FULLY COMMIT to it
         // NO CANCELLATION except for death or destroyed player
         // This ensures attack animations always complete once started
@@ -197,19 +197,19 @@ public class EnemyCombat : MonoBehaviour
             attackCoroutine = null;
             yield break;
         }
-        
+
         if (player == null)
         {
             attackCoroutine = null;
             yield break;
         }
-        
+
         // Call ready attack warning (for future dodge system)
         ReadyAttack();
-        
+
         // Wait remaining time before actual attack
         yield return new WaitForSeconds(readyAttackWarningTime);
-        
+
         // Final check before executing attack - only for death/null player
         // Don't check combat mode - attack is already committed!
         if (health != null && health.IsDead())
@@ -217,19 +217,19 @@ public class EnemyCombat : MonoBehaviour
             attackCoroutine = null;
             yield break;
         }
-        
+
         if (player == null)
         {
             attackCoroutine = null;
             yield break;
         }
-        
+
         // Execute attack
         ExecuteAttack();
-        
+
         // DON'T set nextAttackTime here - let AttackEnd() do it after animation completes
         // This prevents new attacks from starting before current attack finishes
-        
+
         attackCoroutine = null;
     }
 
@@ -243,9 +243,9 @@ public class EnemyCombat : MonoBehaviour
     {
         // Randomly decide if this attack is parryable (yellow) or just dodgeable (red)
         bool isParryable = Random.value > 0.5f;
-        
+
         Debug.Log($"{gameObject.name}: Enemy ready to attack! {(isParryable ? "PARRY (Yellow)" : "DODGE (Red)")}");
-        
+
         if (warningCoroutine != null)
         {
             StopCoroutine(warningCoroutine);
@@ -343,26 +343,68 @@ public class EnemyCombat : MonoBehaviour
         float yOff = (enemySr != null && enemySr.sprite != null) ? enemySr.sprite.bounds.extents.y : 0.5f;
         root.transform.localPosition = new Vector3(0f, yOff + 0.35f, 0f);
 
-        // Additive material: sprites ADD color to the scene like emitted light, not render on top
+        // Additive light shader
         Shader addShader = Shader.Find("Sprites/Additive");
         if (addShader == null) addShader = Shader.Find("Particles/Additive");
         if (addShader == null) addShader = Shader.Find("Sprites/Default");
+
         Material addMat = new Material(addShader);
 
-        Sprite circle = MakeGradientSprite(false); // radial glow
-        Sprite streak = MakeGradientSprite(true);  // horizontal streak with soft tips
+        Sprite circle = MakeGradientSprite(false);
+        Sprite streak = MakeGradientSprite(true);
 
-        // Outer ambient glow halo
-        AddGlintChild(root, "AmbientGlow", circle, Vector3.zero, Quaternion.identity,           new Vector3(0.6f,  0.6f,  1f), addMat, 98);
-        // Long dominant horizontal light streak (the "blade catching light" spike)
-        AddGlintChild(root, "H_Streak",   streak,  Vector3.zero, Quaternion.identity,           new Vector3(2.4f,  0.09f, 1f), addMat, 100);
-        // Vertical streak — slightly shorter for the asymmetry real lens flares have
-        AddGlintChild(root, "V_Streak",   streak,  Vector3.zero, Quaternion.Euler(0f, 0f, 90f), new Vector3(1.5f,  0.07f, 1f), addMat, 100);
-        // Diagonal sparkle rays
-        AddGlintChild(root, "Diag_A",     streak,  Vector3.zero, Quaternion.Euler(0f, 0f,  45f),new Vector3(0.9f,  0.05f, 1f), addMat, 100);
-        AddGlintChild(root, "Diag_B",     streak,  Vector3.zero, Quaternion.Euler(0f, 0f, -45f),new Vector3(0.9f,  0.05f, 1f), addMat, 100);
-        // Bright hot white core — the saturated point where "light hits"
-        AddGlintChild(root, "CoreDot",    circle,  Vector3.zero, Quaternion.identity,           new Vector3(0.18f, 0.18f, 1f), addMat, 103);
+        // SMALL ambient glow in the center
+        AddGlintChild(root, "AmbientGlow",
+            circle,
+            Vector3.zero,
+            Quaternion.identity,
+            new Vector3(0.4f, 0.4f, 1f),   // much smaller
+            addMat,
+            98);
+
+        // MAIN horizontal streak (thicker and longer)
+        AddGlintChild(root, "H_Streak",
+            streak,
+            Vector3.zero,
+            Quaternion.identity,
+            new Vector3(6f, 0.15f, 1f),   // longer & thicker
+            addMat,
+            100);
+
+        // vertical streak (thicker and longer)
+        AddGlintChild(root, "V_Streak",
+            streak,
+            Vector3.zero,
+            Quaternion.Euler(0f, 0f, 90f),
+            new Vector3(5.2f, 0.15f, 1f), // longer & thicker
+            addMat,
+            100);
+
+        // diagonal rays (thicker and longer)
+        AddGlintChild(root, "Diag_A",
+            streak,
+            Vector3.zero,
+            Quaternion.Euler(0f, 0f, 45f),
+            new Vector3(4.6f, 0.12f, 1f), // longer & thicker
+            addMat,
+            100);
+
+        AddGlintChild(root, "Diag_B",
+            streak,
+            Vector3.zero,
+            Quaternion.Euler(0f, 0f, -45f),
+            new Vector3(4.6f, 0.12f, 1f), // longer & thicker
+            addMat,
+            100);
+
+        // core dot in the middle - small
+        AddGlintChild(root, "CoreDot",
+            circle,
+            Vector3.zero,
+            Quaternion.identity,
+            new Vector3(0.1f, 0.1f, 1f), // tiny
+            addMat,
+            103);
 
         return root;
     }
@@ -374,11 +416,11 @@ public class EnemyCombat : MonoBehaviour
         go.transform.SetParent(parent.transform);
         go.transform.localPosition = localPos;
         go.transform.localRotation = localRot;
-        go.transform.localScale    = localScale;
+        go.transform.localScale = localScale;
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite        = sprite;
+        sr.sprite = sprite;
         sr.sharedMaterial = mat;
-        sr.sortingOrder  = sortOrder;
+        sr.sortingOrder = sortOrder;
     }
 
     /// <summary>
@@ -391,7 +433,7 @@ public class EnemyCombat : MonoBehaviour
         const int size = 64;
         Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
         tex.filterMode = FilterMode.Bilinear;
-        tex.wrapMode   = TextureWrapMode.Clamp;
+        tex.wrapMode = TextureWrapMode.Clamp;
 
         float half = size * 0.5f;
         for (int y = 0; y < size; y++)
@@ -402,17 +444,17 @@ public class EnemyCombat : MonoBehaviour
                 if (isStreak)
                 {
                     // xAlpha: bright at center-X, fades toward tips (controls streak length)
-                    float xT     = Mathf.Abs((x - half) / half);
+                    float xT = Mathf.Abs((x - half) / half);
                     float xAlpha = Mathf.Pow(Mathf.Clamp01(1f - xT), 1.8f);
                     // yAlpha: very soft vertical falloff keeps the streak narrow but not hard-edged
-                    float yT     = Mathf.Abs((y - half) / half);
+                    float yT = Mathf.Abs((y - half) / half);
                     float yAlpha = Mathf.Pow(Mathf.Clamp01(1f - yT), 0.4f);
                     a = xAlpha * yAlpha;
                 }
                 else
                 {
-                    float dx   = (x - half) / half;
-                    float dy   = (y - half) / half;
+                    float dx = (x - half) / half;
+                    float dy = (y - half) / half;
                     float dist = Mathf.Sqrt(dx * dx + dy * dy);
                     a = Mathf.Pow(Mathf.Clamp01(1f - dist), 1.5f);
                 }
@@ -430,7 +472,7 @@ public class EnemyCombat : MonoBehaviour
     {
         isAttacking = true;
         hasHitPlayerThisAttack = false;
-        
+
         // Calculate direction TO PLAYER for the attack (not just current facing)
         if (player != null)
         {
@@ -442,23 +484,23 @@ public class EnemyCombat : MonoBehaviour
             // Fallback to current facing direction if player is null
             attackDirection = controller.GetFacingDirection();
         }
-        
+
         // Update animator with attack direction
         UpdateAnimatorForAttack();
         UpdateAnimatorAttackState(true);
-        
+
         // Lock sprite flip to attack direction
         controller.FlipSprite(attackDirection);
-        
+
         Debug.Log($"{gameObject.name}: ========== ATTACK START ==========");
         Debug.Log($"{gameObject.name}: Direction TO PLAYER: {attackDirection}");
         Debug.Log($"{gameObject.name}: Setting animator - moveX: {Mathf.Abs(attackDirection.x)}, moveY: {attackDirection.y}, isAttacking: TRUE");
-        
+
         // Safety failsafe: If animation events aren't set up, reset after animation length
         // This prevents getting stuck in attacking state
         StartCoroutine(AttackFailsafe(3f)); // 3 second failsafe (increased from 2)
     }
-    
+
     /// <summary>
     /// Update animator moveX/moveY to match attack direction
     /// </summary>
@@ -470,14 +512,14 @@ public class EnemyCombat : MonoBehaviour
             animator.SetFloat("moveY", attackDirection.y);
         }
     }
-    
+
     /// <summary>
     /// Failsafe to reset attack state if animation events don't fire
     /// </summary>
     private IEnumerator AttackFailsafe(float maxDuration)
     {
         yield return new WaitForSeconds(maxDuration);
-        
+
         // If still attacking after max duration, animation events probably aren't set up
         if (isAttacking)
         {
@@ -508,7 +550,7 @@ public class EnemyCombat : MonoBehaviour
         // Guard against duplicate events (check if already attacking)
         if (!isAttacking)
             return;
-            
+
         hasHitPlayerThisAttack = false;
         Debug.Log($"{gameObject.name}: AttackStart event fired!");
     }
@@ -519,21 +561,21 @@ public class EnemyCombat : MonoBehaviour
     public void AttackHit()
     {
         Debug.Log($"{gameObject.name}: AttackHit event fired!");
-        
+
         if (hasHitPlayerThisAttack)
             return;
-        
+
         // Check if player is in attack range
         if (player == null)
             return;
-        
+
         float distanceToPlayer = Vector2.Distance(transform.position, player.transform.position);
-        
+
         if (distanceToPlayer <= attackHitboxRadius)
         {
             hasHitPlayerThisAttack = true;
             Debug.Log($"{gameObject.name}: Enemy hit player! (Distance: {distanceToPlayer:F2})");
-            
+
             // Deal damage to player
             PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
             if (playerHealth != null)
@@ -559,17 +601,17 @@ public class EnemyCombat : MonoBehaviour
         // Guard against duplicate events
         if (!isAttacking)
             return;
-            
+
         Debug.Log($"{gameObject.name}: AttackEnd event fired! isAttacking set to FALSE");
         isAttacking = false;
         UpdateAnimatorAttackState(false);
-        
+
         // Set next attack time AFTER animation completes
         // This ensures the cooldown only starts after the current attack fully finishes
         nextAttackTime = Time.time + Random.Range(minAttackInterval, maxAttackInterval);
         Debug.Log($"{gameObject.name}: Next attack allowed at: {nextAttackTime:F2} (current time: {Time.time:F2})");
     }
-    
+
     /// <summary>
     /// Get the attack direction for animator use
     /// </summary>
@@ -583,9 +625,9 @@ public class EnemyCombat : MonoBehaviour
     public void EnterCombat()
     {
         if (isInCombat) return;
-        
+
         isInCombat = true;
-        
+
         // Show health bar when entering combat
         if (health != null)
         {
@@ -595,7 +637,7 @@ public class EnemyCombat : MonoBehaviour
                 healthBar.Show();
             }
         }
-        
+
         // Notify GameManager
         if (GameManager.Instance != null)
         {
@@ -609,9 +651,9 @@ public class EnemyCombat : MonoBehaviour
     public void ExitCombat()
     {
         if (!isInCombat) return;
-        
+
         isInCombat = false;
-        
+
         // Notify GameManager
         if (GameManager.Instance != null)
         {
@@ -653,16 +695,16 @@ public class EnemyCombat : MonoBehaviour
         // Combat mode radius (yellow)
         Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
         Gizmos.DrawWireSphere(transform.position, combatModeRadius);
-        
+
         // Attack hitbox radius (red)
         Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
         Gizmos.DrawWireSphere(transform.position, attackHitboxRadius);
-        
+
         // Draw line to player if in range during play mode
         if (Application.isPlaying && player != null)
         {
             float distanceToPlayer = Vector2.Distance(transform.position, player.transform.position);
-            
+
             if (distanceToPlayer <= combatModeRadius)
             {
                 Gizmos.color = isInCombatMode ? Color.red : Color.yellow;
