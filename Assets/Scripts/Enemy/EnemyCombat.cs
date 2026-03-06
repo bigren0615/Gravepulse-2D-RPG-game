@@ -24,6 +24,9 @@ public class EnemyCombat : MonoBehaviour
     [Tooltip("Time before attack to call readyAttack (for dodge system)")]
     public float readyAttackWarningTime = 1f;
 
+    [Tooltip("How long the enemy is staggered before attacking again when parried")]
+    public float postParryStaggerTime = 1.5f;
+
     [Header("Attack Damage")]
     public float attackDamage = 10f;
 
@@ -42,11 +45,13 @@ public class EnemyCombat : MonoBehaviour
     private bool isInCombatMode = false; // New: Combat mode (close range) vs chase mode
     private bool isAttacking = false;
     private bool hasHitPlayerThisAttack = false;
-    private bool isReadyWindowOpen = false; // True during warning phase (dodge window for Vital View)
+    private bool isReadyWindowOpen = false;    // True during warning phase (dodge/parry window)
+    private bool isParryable = false;           // True when current attack shows yellow indicator (can be parried)
 
     // Attack timing
     private Coroutine attackCoroutine;
     private float nextAttackTime = 0f;
+    private bool isStaggered = false; // True during post-parry stagger — blocks movement
 
     // Attack direction (stored when attack starts)
     private Vector2 attackDirection = Vector2.down;
@@ -113,10 +118,7 @@ public class EnemyCombat : MonoBehaviour
             EnterCombatMode();
         }
         // Exit combat mode if player leaves combat range
-        // Note: We wait for attacks to finish before exiting, but attacks are NEVER cancelled
-        // - attackCoroutine != null: attack sequence preparing (ready warning phase)
-        // - isAttacking = true: attack animation executing
-        // Once an attack starts, it will complete regardless of player distance
+        // Attacks cannot be interrupted by distance — only by parry (TryParry)
         else if (isInCombatMode && distanceToPlayer > combatModeRadius && !isAttacking && attackCoroutine == null)
         {
             ExitCombatMode();
@@ -251,8 +253,13 @@ public class EnemyCombat : MonoBehaviour
     /// </summary>
     private void ReadyAttack()
     {
+        // Capture attack direction now so PlayerController can use it during the dodge window.
+        // ExecuteAttack() also sets this later, but the player may dash before ExecuteAttack fires.
+        if (player != null)
+            attackDirection = (player.transform.position - transform.position).normalized;
+
         // Randomly decide if this attack is parryable (yellow) or just dodgeable (red)
-        bool isParryable = Random.value > 0.5f;
+        isParryable = Random.value > 0.5f;
 
         Debug.Log($"{gameObject.name}: Enemy ready to attack! {(isParryable ? "PARRY (Yellow)" : "DODGE (Red)")}");
 
@@ -649,9 +656,77 @@ public class EnemyCombat : MonoBehaviour
     public bool IsAttacking() => isAttacking;
 
     /// <summary>
+    /// True during post-parry stagger — enemy movement is suppressed.
+    /// </summary>
+    public bool IsStaggered() => isStaggered;
+
+    /// <summary>
     /// True during the warning window — player can trigger Vital View by dashing now
     /// </summary>
     public bool IsInReadyWindow() => isReadyWindowOpen;
+
+    /// <summary>
+    /// True when the current ready-attack shows a yellow indicator (parryable by pressing Space).
+    /// </summary>
+    public bool IsParryable() => isParryable;
+
+    /// <summary>
+    /// Called by PlayerController when the player presses Space during the ready window.
+    /// Works in TWO cases:
+    ///   A) During warning phase  — StopCoroutine kills AttackSequenceCoroutine before ExecuteAttack() runs.
+    ///   B) During attack animation — ExecuteAttack() already ran; we reset isAttacking and block
+    ///      AttackHit() via hasHitPlayerThisAttack so damage never lands.
+    /// </summary>
+    public bool TryParry()
+    {
+        if (!isReadyWindowOpen || !isParryable)
+            return false;
+
+        isReadyWindowOpen = false;
+
+        // Stop the warning indicator
+        if (warningCoroutine != null) { StopCoroutine(warningCoroutine); warningCoroutine = null; }
+        if (warningIndicator != null) warningIndicator.SetActive(false);
+
+        // Case A: coroutine still alive in warning phase — kill it BEFORE ExecuteAttack() is reached
+        if (attackCoroutine != null) { StopCoroutine(attackCoroutine); attackCoroutine = null; }
+
+        // Case B: ExecuteAttack() already ran (isAttacking=true, attackCoroutine=null).
+        // Block AttackHit() from dealing damage regardless of animation timing.
+        hasHitPlayerThisAttack = true;
+
+        // If the attack animation is already playing, forcefully exit it so the
+        // animator can transition into the Parried/stagger state cleanly.
+        if (isAttacking)
+        {
+            isAttacking = false;
+            UpdateAnimatorAttackState(false);
+        }
+
+        // Occupy attackCoroutine so UpdateCombatMode's guard blocks new attacks during stagger
+        isStaggered = true;
+        attackCoroutine = StartCoroutine(ParryStaggerCoroutine());
+
+        if (animator != null)
+            animator.SetTrigger("Parried");
+
+        Debug.Log($"{gameObject.name}: PARRIED! Attack nullified (was mid-animation: {!isAttacking}), stagger started.");
+        return true;
+    }
+
+    /// <summary>
+    /// Holds the enemy in a stagger state after being parried.
+    /// Uses unscaled (real) time so hitstop (timeScale=0) doesn't freeze the recovery.
+    /// </summary>
+    private IEnumerator ParryStaggerCoroutine()
+    {
+        yield return new WaitForSecondsRealtime(postParryStaggerTime);
+        // After stagger, reset to a normal attack cooldown so the next
+        // StartAttackSequence goes through the full warning flow.
+        nextAttackTime = Time.time;
+        isStaggered = false;
+        attackCoroutine = null;
+    }
 
     private void OnDestroy()
     {

@@ -95,10 +95,10 @@ public class EnemyController : MonoBehaviour
     /// </summary>
     public bool MoveToward(Vector3 destination, bool updateFacing = true)
     {
-        // Prevent movement during attack - enemy must finish attack before moving
-        if (enemyCombat != null && enemyCombat.IsAttacking())
+        // Prevent movement during attack or post-parry stagger
+        if (enemyCombat != null && (enemyCombat.IsAttacking() || enemyCombat.IsStaggered()))
         {
-            return false; // Cannot move while attacking
+            return false; // Cannot move while attacking or staggered
         }
         
         Vector3 dir = destination - transform.position;

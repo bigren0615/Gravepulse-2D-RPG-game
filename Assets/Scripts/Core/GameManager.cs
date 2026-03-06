@@ -29,6 +29,79 @@ public class GameManager : MonoBehaviour
 
     public bool IsVitalViewActive() => isVitalViewActive;
 
+    // ===== HITSTOP (parry impact camera punch) =====
+    private Coroutine hitstopCoroutine;
+    [Tooltip("Camera zoom factor during parry hitstop. 0.82 = 18% zoom in. Lower = more dramatic.")]
+    public float hitstopZoomFactor = 0.82f;
+    private float hitstopOriginalSize;
+    private bool _hitstopActive = false; // True while a hitstop is in progress — prevents re-capturing a zoomed camera size as the "original"
+
+    /// <summary>
+    /// Parry hitstop: ZZZ-style camera punch zoom.
+    ///   Phase 1 (~0.04s real) — Camera snaps in fast (explosive t^0.3 zoom punch)
+    ///   Phase 2 (freezeDuration real) — World freezes (timeScale=0), camera holds zoomed
+    ///   Phase 3 (~0.15s real) — Camera eases back to original size (t^2 smooth pullback)
+    /// </summary>
+    public void TriggerHitstop(float freezeDuration = 0.25f)
+    {
+        if (isVitalViewActive) return; // Don't stack with bullet time
+        if (hitstopCoroutine != null)
+            StopCoroutine(hitstopCoroutine);
+        hitstopCoroutine = StartCoroutine(HitstopCoroutine(freezeDuration));
+    }
+
+    private IEnumerator HitstopCoroutine(float duration)
+    {
+        Camera cam = Camera.main;
+        if (cam == null) { hitstopCoroutine = null; yield break; }
+
+        // Only capture the true base size when we're NOT already mid-hitstop.
+        // If TriggerHitstop fires twice in the same frame (fallback coroutine + animation event
+        // both at t=0.1s), the second call must reuse the already-saved base — reading
+        // cam.orthographicSize here would capture a half-zoomed value and compound the zoom.
+        if (!_hitstopActive)
+            hitstopOriginalSize = cam.orthographicSize;
+        _hitstopActive = true;
+
+        float targetSize = hitstopOriginalSize * hitstopZoomFactor;
+
+        // ── Phase 1: Snap zoom in (explosive punch, ~0.04s real time) ──
+        const float snapDur = 0.04f;
+        float e = 0f;
+        while (e < snapDur)
+        {
+            e += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(e / snapDur);
+            // t^0.3: rushes to target instantly then barely creeps — explosive snap feel
+            cam.orthographicSize = Mathf.Lerp(hitstopOriginalSize, targetSize, Mathf.Pow(t, 0.3f));
+            yield return null;
+        }
+        cam.orthographicSize = targetSize;
+
+        // ── Phase 2: Freeze — world stops, camera holds at zoomed position ──
+        Time.timeScale = 0f;
+        Time.fixedDeltaTime = 0f;
+        yield return new WaitForSecondsRealtime(duration);
+        Time.timeScale = 1f;
+        Time.fixedDeltaTime = 0.02f;
+
+        // ── Phase 3: Ease zoom back out (~0.15s real time) ──
+        const float easeOutDur = 0.25f;
+        float zoomedSize = cam.orthographicSize;
+        e = 0f;
+        while (e < easeOutDur)
+        {
+            e += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(e / easeOutDur);
+            // t^2 ease-in: starts slow then accelerates — "world breathes back" feeling
+            cam.orthographicSize = Mathf.Lerp(zoomedSize, hitstopOriginalSize, t * t);
+            yield return null;
+        }
+        cam.orthographicSize = hitstopOriginalSize;
+        _hitstopActive = false;
+        hitstopCoroutine = null;
+    }
+
     /// <summary>
     /// Trigger ZZZ-style Vital View: slow time to slowScale for duration real seconds.
     /// Default 0.05 (5% speed) for 1.0s real time.

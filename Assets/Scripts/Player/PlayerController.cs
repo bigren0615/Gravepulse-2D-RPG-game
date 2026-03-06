@@ -20,6 +20,10 @@ public class PlayerController : MonoBehaviour
     [Header("Dash Effects")]
     public GameObject dashEffectPrefab;
 
+    [Header("Collision")]
+    [Tooltip("Solid obstacles layer — walls the player must never enter. Auto-initialised to the 'Solid' layer if left empty.")]
+    public LayerMask solidLayer;
+
     [Header("Footsteps")]
     public float footstepInterval = 0.8f;
     private float footstepTimer;
@@ -48,15 +52,31 @@ public class PlayerController : MonoBehaviour
     private Vector2 movementInput;
     private Rigidbody2D rb;
     private Animator animator;
+    private Collider2D col;
 
     // ---- Vital View afterimage trail ----
     private Coroutine afterimageCoroutine;
     private bool wasInVitalView;
 
+    // ---- Parry ----
+    private Coroutine parryFacingCoroutine;
+    private Coroutine parryHitstopCoroutine;
+    [Tooltip("Seconds (real-time) after parry input before hitstop+SFX fires. Tune to match the clash frame of your Parry animation. Set to 0 once you wire the ParryImpact animation event.")]
+    [SerializeField] private float parryImpactDelay = 0.1f;
+
+    [Header("Parry Spark VFX")]
+    [Tooltip("How far in front of the player (along attackDir) the spark spawns — tune to sit at the weapon tip.")]
+    [SerializeField] private float parrySparkOffset = 0.5f;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        col = GetComponent<Collider2D>();
+
+        // Auto-resolve solid layer by name if not set in Inspector
+        if (solidLayer.value == 0)
+            solidLayer = LayerMask.GetMask("Solid");
 
         // Automatically fetch SpriteRenderer if not assigned
         if (spriteRenderer == null)
@@ -89,6 +109,12 @@ public class PlayerController : MonoBehaviour
             }
         }
 
+        // Parry input (Space) — succeeds only when an enemy shows a yellow warning indicator
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            AttemptParry();
+        }
+
         ReadInput();
         UpdateAnimation();
 
@@ -114,6 +140,7 @@ public class PlayerController : MonoBehaviour
     {
         if (!isDashing) Move(); // Move first
         HandleFootsteps();       // Footsteps after movement
+        DepenetrateFromSolids(); // Continuously push out of any wall overlap (catches dash tunnelling)
     }
 
     // 1️ Read input every frame (responsive)
@@ -164,11 +191,12 @@ public class PlayerController : MonoBehaviour
 
         animator.SetBool("isMoving", isMoving);
 
-        // Check if we're currently in the Attack state (any layer, but typically layer 0)
+        // Check if we're currently in the Attack or Parry state (any layer, but typically layer 0)
         bool isInAttackState = animator.GetCurrentAnimatorStateInfo(0).IsName("Attack");
+        bool isInParryState  = animator.GetCurrentAnimatorStateInfo(0).IsName("Parry");
 
-        // Keep using attackDir if we're locked OR still in attack state
-        if (facingLocked || isInAttackState)
+        // Keep using attackDir if we're locked OR still in attack/parry state
+        if (facingLocked || isInAttackState || isInParryState)
         {
             animator.SetFloat("moveX", Mathf.Abs(attackDir.x));
             animator.SetFloat("moveY", attackDir.y);
@@ -191,10 +219,13 @@ public class PlayerController : MonoBehaviour
         Vector2 dashDirection = movementInput != Vector2.zero ? movementInput : lastMoveDir;
 
         // ---- SPAWN DASH EFFECT ----
+        // Declared outside the if-block so the VitalView section can update it
+        // if the dodge direction changes after the effect is already spawned.
+        GameObject dashVFX = null;
         if (dashEffectPrefab != null)
         {
             // Instantiate as child so it follows player
-            GameObject dashVFX = Instantiate(dashEffectPrefab, transform.position, Quaternion.identity, transform);
+            dashVFX = Instantiate(dashEffectPrefab, transform.position, Quaternion.identity, transform);
 
             // Offset behind player based on dash direction
             Vector3 offset = -(Vector3)dashDirection * 2f;
@@ -253,10 +284,36 @@ public class PlayerController : MonoBehaviour
                 else
                     Debug.LogError("[VitalView] PlayerHealth component not found on this GameObject!");
 
-                // ZZZ-style backdash: always flee directly away from the attacking enemy
-                Vector2 awayFromEnemy = ((Vector2)transform.position - (Vector2)ec.transform.position).normalized;
-                if (awayFromEnemy == Vector2.zero) awayFromEnemy = -lastMoveDir; // fallback if perfectly overlapping
-                dashDirection = awayFromEnemy;
+                // Enhanced ZZZ-style dodge: escape PERPENDICULAR to the attack's path.
+                // The old "away from enemy center" vector equals the attack direction
+                // (enemy attacks toward the player), so the player was dashing further along
+                // the attack axis — not out of it. Stepping 90° off the axis guarantees
+                // the player exits the attack's forward area.
+                Vector2 attackAxis = ec.GetAttackDirection();
+                if (attackAxis == Vector2.zero)
+                    attackAxis = ((Vector2)transform.position - (Vector2)ec.transform.position).normalized;
+                if (attackAxis == Vector2.zero)
+                    attackAxis = lastMoveDir;
+
+                // Two perpendicular escape options
+                Vector2 perpCCW = new Vector2(-attackAxis.y,  attackAxis.x);  // 90° counter-clockwise
+                Vector2 perpCW  = new Vector2( attackAxis.y, -attackAxis.x);  // 90° clockwise
+
+                // Pick the perpendicular closest to the player's current movement intent
+                Vector2 inputRef = movementInput != Vector2.zero ? movementInput : lastMoveDir;
+                Vector2 escapePerp = Vector2.Dot(inputRef, perpCCW) >= Vector2.Dot(inputRef, perpCW)
+                    ? perpCCW : perpCW;
+
+                // Blend: mostly perpendicular (exits attack path) + slight away-bias (feels like a back-dodge)
+                dashDirection = (escapePerp + attackAxis * 0.5f).normalized;
+
+                // Realign the already-spawned VFX to match the corrected direction
+                if (dashVFX != null)
+                {
+                    dashVFX.transform.localPosition = -(Vector3)dashDirection * 2f;
+                    float vfxAngle = Mathf.Atan2(dashDirection.y, dashDirection.x) * Mathf.Rad2Deg;
+                    dashVFX.transform.rotation = Quaternion.Euler(0, 0, vfxAngle);
+                }
 
                 vitalViewTriggered = true;
                 break; // one trigger per dash
@@ -265,18 +322,44 @@ public class PlayerController : MonoBehaviour
         if (!vitalViewTriggered)
             Debug.Log("[VitalView] No enemy in ready window — normal dash.");
 
-        // ---- DASH MOVEMENT (unscaled-time aware) ----
-        // Use unscaled time for loop so dash completes in correct real seconds
-        // even when bullet time is active (otherwise scaled Time.time would stretch the dash)
+        // Phase through enemy bodies for the entire dash — enemies must not block or cage the player.
+        // Physics2D.IgnoreLayerCollision is global but immediately reversed at dash end / OnDisable.
+        SetEnemyCollisionIgnored(true);
+
+        // ---- DASH MOVEMENT (unscaled-time aware, wall-collision safe) ----
+        // Cast ahead each step so the dash stops at solid walls instead of tunnelling through them.
+        ContactFilter2D dashFilter = new ContactFilter2D();
+        dashFilter.SetLayerMask(solidLayer);
+        dashFilter.useTriggers = false;
+        RaycastHit2D[] castHits = new RaycastHit2D[1];
+        const float skinWidth = 0.05f;
+
         float startTime = Time.unscaledTime;
         while (Time.unscaledTime < startTime + dashDuration)
         {
             bool inBulletTime = GameManager.Instance != null && GameManager.Instance.IsVitalViewActive();
             float dt = inBulletTime ? Time.unscaledDeltaTime : Time.fixedDeltaTime;
-            rb.MovePosition(rb.position + dashDirection * dashSpeed * dt);
+            float stepDist = dashSpeed * dt;
+
+            // Wall check: cast the player's collider forward by stepDist + skin
+            if (solidLayer.value != 0 && col != null)
+            {
+                int hits = col.Cast(dashDirection, dashFilter, castHits, stepDist + skinWidth);
+                if (hits > 0)
+                {
+                    // Move only up to the wall surface (minus skin gap), then stop
+                    float safeDist = Mathf.Max(0f, castHits[0].distance - skinWidth);
+                    if (safeDist > 0f)
+                        rb.MovePosition(rb.position + dashDirection * safeDist);
+                    break;
+                }
+            }
+
+            rb.MovePosition(rb.position + dashDirection * stepDist);
             yield return new WaitForFixedUpdate();
         }
 
+        SetEnemyCollisionIgnored(false);
         isDashing = false;
     }
 
@@ -286,6 +369,70 @@ public class PlayerController : MonoBehaviour
         lastAttackTime = Time.unscaledTime;
         animator.SetTrigger("Attack");
         AudioManager.Instance.PlayRandomSFX(attackSwooshs);
+    }
+
+    // Parry attempt: press Space during an enemy's yellow (parryable) warning window
+    private void AttemptParry()
+    {
+        EnemyCombat[] allEnemies = FindObjectsByType<EnemyCombat>(FindObjectsSortMode.None);
+        foreach (EnemyCombat ec in allEnemies)
+        {
+            if (ec.IsInReadyWindow() && ec.IsParryable())
+            {
+                if (ec.TryParry())
+                {
+                    // Snap to the cardinal direction toward the attacking enemy
+                    // so the correct directional Parry clip plays from the first frame
+                    Vector2 raw = (ec.transform.position - transform.position).normalized;
+                    Vector2 parryDir = Mathf.Abs(raw.x) >= Mathf.Abs(raw.y)
+                        ? new Vector2(Mathf.Sign(raw.x), 0f)
+                        : new Vector2(0f, Mathf.Sign(raw.y));
+
+                    // Lock facing toward the attacker (mirrors how AttackStart works)
+                    attackDir   = parryDir;
+                    lastMoveDir = parryDir;
+                    facingLocked = true;
+
+                    // Flip sprite immediately before the trigger fires
+                    if (parryDir.x > 0f)
+                        spriteRenderer.flipX = true;
+                    else if (parryDir.x < 0f)
+                        spriteRenderer.flipX = false;
+
+                    // Push blend-tree params so the Parry state reads them from frame 1
+                    animator.SetFloat("moveX", Mathf.Abs(parryDir.x));
+                    animator.SetFloat("moveY", parryDir.y);
+                    animator.SetTrigger("Parry");
+
+                    // Fire SFX + hitstop at the clash impact frame, not at button-press.
+                    // Tune parryImpactDelay in the Inspector to match your Parry animation.
+                    // Once you add a ParryImpact() animation event at the clash frame,
+                    // this coroutine becomes the fallback only.
+                    if (parryHitstopCoroutine != null) StopCoroutine(parryHitstopCoroutine);
+                    parryHitstopCoroutine = StartCoroutine(ParryHitstopCoroutine());
+
+                    // Failsafe: release facing lock after 1s real-time in case
+                    // ParryEnd animation event is not yet configured
+                    if (parryFacingCoroutine != null) StopCoroutine(parryFacingCoroutine);
+                    parryFacingCoroutine = StartCoroutine(ParryFacingFailsafe(1f));
+
+                    Debug.Log($"[Parry] SUCCESS! Facing: {parryDir}");
+                    return;
+                }
+            }
+        }
+        Debug.Log("[Parry] No parryable window open — whiff.");
+    }
+
+    // Delays hitstop+SFX until the clash impact frame (tunable via parryImpactDelay).
+    // Superseded frame-perfectly once the ParryImpact animation event is wired up.
+    private IEnumerator ParryHitstopCoroutine()
+    {
+        if (parryImpactDelay > 0f)
+            yield return new WaitForSecondsRealtime(parryImpactDelay);
+        AudioManager.Instance?.PlaySFX(SFXType.Clash);
+        GameManager.Instance?.TriggerHitstop();
+        parryHitstopCoroutine = null;
     }
 
     // Called by animation event at the start of the attack animation
@@ -307,6 +454,46 @@ public class PlayerController : MonoBehaviour
     public void AttackEnd()
     {
         facingLocked = false;
+    }
+
+    /// <summary>
+    /// Called by animation event at the clash / sword-contact frame of the Parry animation.
+    /// Cancels the fallback delay coroutine and fires SFX + hitstop immediately (frame-perfect).
+    /// Add this as an Animation Event in the Parry clip at the frame the sword makes contact.
+    /// </summary>
+    public void ParryImpact()
+    {
+        if (parryHitstopCoroutine != null)
+        {
+            StopCoroutine(parryHitstopCoroutine);
+            parryHitstopCoroutine = null;
+        }
+        AudioManager.Instance?.PlaySFX(SFXType.Clash);
+
+        // Spawn sparkle BEFORE hitstop so it appears on the exact freeze frame
+        Vector3 spawnPos = transform.position + (Vector3)(attackDir.normalized * parrySparkOffset);
+        ParrySparkEffect.Spawn(spawnPos, attackDir, spriteRenderer);
+
+        GameManager.Instance?.TriggerHitstop();
+    }
+
+    // Called by animation event at the end of the Parry animation
+    public void ParryEnd()
+    {
+        if (parryFacingCoroutine != null)
+        {
+            StopCoroutine(parryFacingCoroutine);
+            parryFacingCoroutine = null;
+        }
+        facingLocked = false;
+    }
+
+    // Real-time failsafe so facing is never stuck if ParryEnd event isn't wired yet
+    private IEnumerator ParryFacingFailsafe(float duration)
+    {
+        yield return new WaitForSecondsRealtime(duration);
+        facingLocked = false;
+        parryFacingCoroutine = null;
     }
 
     // Called by animation event at the moment of impact (when sword actually hits)
@@ -508,5 +695,48 @@ public class PlayerController : MonoBehaviour
         float cos = Mathf.Cos(radians);
         float sin = Mathf.Sin(radians);
         return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+    }
+
+    // Pushes the player out of any solid collider they are overlapping.
+    // Runs every FixedUpdate so it also recovers an already-stuck player.
+    private void DepenetrateFromSolids()
+    {
+        if (solidLayer.value == 0 || col == null) return;
+
+        ContactFilter2D filter = new ContactFilter2D();
+        filter.SetLayerMask(solidLayer);
+        filter.useTriggers = false;
+
+        Collider2D[] overlaps = new Collider2D[8];
+        int count = Physics2D.OverlapCollider(col, filter, overlaps);
+        for (int i = 0; i < count; i++)
+        {
+            if (overlaps[i] == null) continue;
+            ColliderDistance2D dist = col.Distance(overlaps[i]);
+            // dist.distance is negative when overlapping; dist.normal points from wall toward player.
+            // Threshold 0.05 ignores normal wall-touching (≈0) which physics handles fine.
+            // Only fire for real tunnelling penetration (dashing into a wall), so Move() and
+            // DepenetrateFromSolids() never fight each other and cause the sticky-wall bug.
+            if (dist.distance < -0.05f)
+                rb.MovePosition(rb.position + dist.normal * -dist.distance);
+        }
+    }
+
+    // Phases the player through all enemy-layer colliders.
+    // Called at dash start (ignore=true) and dash end (ignore=false).
+    // Physics2D.IgnoreLayerCollision is global but safely reversed — single-player, one dash at a time.
+    private void SetEnemyCollisionIgnored(bool ignore)
+    {
+        int playerLayer = gameObject.layer;
+        int maskValue = enemyLayer.value;
+        for (int i = 0; i < 32; i++)
+            if ((maskValue & (1 << i)) != 0)
+                Physics2D.IgnoreLayerCollision(playerLayer, i, ignore);
+    }
+
+    private void OnDisable()
+    {
+        // Safety net: restore enemy collision if the object is disabled or destroyed mid-dash.
+        SetEnemyCollisionIgnored(false);
     }
 }
