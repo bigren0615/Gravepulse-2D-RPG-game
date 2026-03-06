@@ -20,6 +20,10 @@ public class PlayerController : MonoBehaviour
     [Header("Dash Effects")]
     public GameObject dashEffectPrefab;
 
+    [Header("Collision")]
+    [Tooltip("Solid obstacles layer — walls the player must never enter. Auto-initialised to the 'Solid' layer if left empty.")]
+    public LayerMask solidLayer;
+
     [Header("Footsteps")]
     public float footstepInterval = 0.8f;
     private float footstepTimer;
@@ -48,6 +52,7 @@ public class PlayerController : MonoBehaviour
     private Vector2 movementInput;
     private Rigidbody2D rb;
     private Animator animator;
+    private Collider2D col;
 
     // ---- Vital View afterimage trail ----
     private Coroutine afterimageCoroutine;
@@ -67,6 +72,11 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        col = GetComponent<Collider2D>();
+
+        // Auto-resolve solid layer by name if not set in Inspector
+        if (solidLayer.value == 0)
+            solidLayer = LayerMask.GetMask("Solid");
 
         // Automatically fetch SpriteRenderer if not assigned
         if (spriteRenderer == null)
@@ -130,6 +140,7 @@ public class PlayerController : MonoBehaviour
     {
         if (!isDashing) Move(); // Move first
         HandleFootsteps();       // Footsteps after movement
+        DepenetrateFromSolids(); // Continuously push out of any wall overlap (catches dash tunnelling)
     }
 
     // 1️ Read input every frame (responsive)
@@ -311,15 +322,36 @@ public class PlayerController : MonoBehaviour
         if (!vitalViewTriggered)
             Debug.Log("[VitalView] No enemy in ready window — normal dash.");
 
-        // ---- DASH MOVEMENT (unscaled-time aware) ----
-        // Use unscaled time for loop so dash completes in correct real seconds
-        // even when bullet time is active (otherwise scaled Time.time would stretch the dash)
+        // ---- DASH MOVEMENT (unscaled-time aware, wall-collision safe) ----
+        // Cast ahead each step so the dash stops at solid walls instead of tunnelling through them.
+        ContactFilter2D dashFilter = new ContactFilter2D();
+        dashFilter.SetLayerMask(solidLayer);
+        dashFilter.useTriggers = false;
+        RaycastHit2D[] castHits = new RaycastHit2D[1];
+        const float skinWidth = 0.05f;
+
         float startTime = Time.unscaledTime;
         while (Time.unscaledTime < startTime + dashDuration)
         {
             bool inBulletTime = GameManager.Instance != null && GameManager.Instance.IsVitalViewActive();
             float dt = inBulletTime ? Time.unscaledDeltaTime : Time.fixedDeltaTime;
-            rb.MovePosition(rb.position + dashDirection * dashSpeed * dt);
+            float stepDist = dashSpeed * dt;
+
+            // Wall check: cast the player's collider forward by stepDist + skin
+            if (solidLayer.value != 0 && col != null)
+            {
+                int hits = col.Cast(dashDirection, dashFilter, castHits, stepDist + skinWidth);
+                if (hits > 0)
+                {
+                    // Move only up to the wall surface (minus skin gap), then stop
+                    float safeDist = Mathf.Max(0f, castHits[0].distance - skinWidth);
+                    if (safeDist > 0f)
+                        rb.MovePosition(rb.position + dashDirection * safeDist);
+                    break;
+                }
+            }
+
+            rb.MovePosition(rb.position + dashDirection * stepDist);
             yield return new WaitForFixedUpdate();
         }
 
@@ -658,5 +690,27 @@ public class PlayerController : MonoBehaviour
         float cos = Mathf.Cos(radians);
         float sin = Mathf.Sin(radians);
         return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+    }
+
+    // Pushes the player out of any solid collider they are overlapping.
+    // Runs every FixedUpdate so it also recovers an already-stuck player.
+    private void DepenetrateFromSolids()
+    {
+        if (solidLayer.value == 0 || col == null) return;
+
+        ContactFilter2D filter = new ContactFilter2D();
+        filter.SetLayerMask(solidLayer);
+        filter.useTriggers = false;
+
+        Collider2D[] overlaps = new Collider2D[8];
+        int count = Physics2D.OverlapCollider(col, filter, overlaps);
+        for (int i = 0; i < count; i++)
+        {
+            if (overlaps[i] == null) continue;
+            ColliderDistance2D dist = col.Distance(overlaps[i]);
+            // dist.distance is negative when overlapping; dist.normal points from wall toward player
+            if (dist.isOverlapped)
+                rb.MovePosition(rb.position + dist.normal * (-dist.distance + 0.005f));
+        }
     }
 }
