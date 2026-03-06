@@ -253,6 +253,11 @@ public class PlayerController : MonoBehaviour
                 else
                     Debug.LogError("[VitalView] PlayerHealth component not found on this GameObject!");
 
+                // ZZZ-style backdash: always flee directly away from the attacking enemy
+                Vector2 awayFromEnemy = ((Vector2)transform.position - (Vector2)ec.transform.position).normalized;
+                if (awayFromEnemy == Vector2.zero) awayFromEnemy = -lastMoveDir; // fallback if perfectly overlapping
+                dashDirection = awayFromEnemy;
+
                 vitalViewTriggered = true;
                 break; // one trigger per dash
             }
