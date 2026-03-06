@@ -261,6 +261,8 @@ public class EnemyCombat : MonoBehaviour
         warningIndicator.SetActive(true);
 
         warningCoroutine = StartCoroutine(ShowWarningIndicator(isParryable, readyAttackWarningTime));
+
+        AudioManager.Instance?.PlaySFX(SFXType.Slice); // Play warning sound effect (can be changed to a specific "ready attack" SFX)
     }
 
     private IEnumerator ShowWarningIndicator(bool isParryable, float duration)
@@ -297,8 +299,8 @@ public class EnemyCombat : MonoBehaviour
                 brightness = Mathf.Lerp(2.5f, 0f, (t - 0.4f) / 0.6f);
 
             // ===== SCALE BURST =====
-            // t^0.3 easing = explosive pop from 0, then slows down
-            float scale = Mathf.Pow(t, 0.3f) * (1f + Mathf.Sin(t * Mathf.PI) * 0.18f);
+            // t^0.3 easing = explosive pop from 0, then slows down. * 0.5f = half size
+            float scale = Mathf.Pow(t, 0.3f) * (1f + Mathf.Sin(t * Mathf.PI) * 0.18f) * 0.5f;
             warningIndicator.transform.localScale = new Vector3(scale, scale, 1);
 
             // ===== STREAKS (4-direction cross, fast snap ZZZ style) =====
