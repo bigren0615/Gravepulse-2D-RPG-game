@@ -85,7 +85,7 @@ Total Completion  █████████████████░░░  
 
 ## 📋 Update Log
 
-### v0.1.1-Alpha — Parry System Update - 7 March 2026
+### v0.2.0-Alpha — Parry System Update - 7 March 2026
 - Added parry mechanic (Space) — succeeds only during enemy yellow warning window
 - Enemy attacks now show a warning indicator before striking (yellow = parryable, red = dodge only)
 - Parry triggers hitstop + ZZZ-style camera punch zoom via `GameManager.TriggerHitstop()`
@@ -94,7 +94,7 @@ Total Completion  █████████████████░░░  
 - Enemy enters post-parry stagger after a successful parry
 - Added new SFX: Clash (sword-clash), Slice (attack warning), Swoosh (dramatic whoosh)
 
-### v0.1-Alpha — Initial Release - 6 March 2026
+### v0.1.0-Alpha — Initial Release - 6 March 2026
 - Added player character (Skull Knight) with walk, attack, and death animations
 - Physics-driven movement using Rigidbody2D
 - Top-down environment with floor and nature tilesets
