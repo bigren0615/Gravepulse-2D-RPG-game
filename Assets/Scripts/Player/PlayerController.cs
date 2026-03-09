@@ -162,12 +162,26 @@ public class PlayerController : MonoBehaviour
     // 1️ Read input every frame (responsive)
     private void ReadInput()
     {
-        if (isDashing) return; // Ignore normal input during dash
+#if UNITY_WEBGL
+        movementInput = Vector2.zero;
 
-        movementInput = controls.Player.Move.ReadValue<Vector2>();
+        // Horizontal
+        if (Keyboard.current.aKey != null && Keyboard.current.aKey.isPressed) movementInput.x -= 1f;
+        if (Keyboard.current.dKey != null && Keyboard.current.dKey.isPressed) movementInput.x += 1f;
 
-        // Normalize so diagonal is not faster
+        // Vertical
+        if (Keyboard.current.wKey != null && Keyboard.current.wKey.isPressed) movementInput.y += 1f;
+        if (Keyboard.current.sKey != null && Keyboard.current.sKey.isPressed) movementInput.y -= 1f;
+
+        // Normalize diagonal
         movementInput = movementInput.normalized;
+#else
+    // Full multiplatform for Windows
+    if (isDashing) return;
+
+    movementInput = controls.Player.Move.ReadValue<Vector2>();
+    movementInput = movementInput.normalized;
+#endif
 
         // Check if we're currently in the Attack state
         bool isInAttackState = animator.GetCurrentAnimatorStateInfo(0).IsName("Attack");
