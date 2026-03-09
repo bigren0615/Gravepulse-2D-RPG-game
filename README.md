@@ -7,7 +7,8 @@
 ![Unity](https://img.shields.io/badge/Unity-6-grey?logo=unity&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?logo=c-sharp&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-In%20Development-orange)
-![Progress](https://img.shields.io/badge/Overall%20Progress-85%25-blue)
+![Progress](https://img.shields.io/badge/Overall%20Progress-90%25-blue)
+![Platforms](https://img.shields.io/badge/Platforms-PC%20%7C%20Mobile-brightgreen)
 
 > **Goal:** Real-time physics-driven top-down action RPG with fluid combat, dodge mechanics, and responsive input.
 
@@ -29,6 +30,8 @@
 
 ## 🕹️ Controls
 
+### ⌨️ Keyboard & Mouse
+
 | Action | Key / Input |
 |---|---|
 | Move Up | `W` / `↑` |
@@ -38,6 +41,33 @@
 | Attack | `Left Mouse Button` / `Z` |
 | Dash / Dodge | `Right Mouse Button` / `Shift` |
 | Parry Attack | `Space` |
+
+### 🎮 Controller (Xbox)
+
+| Action | Button |
+|---|---|
+| Move | Left Stick / D-Pad |
+| Attack | `X` |
+| Dash / Dodge | `B` |
+| Parry Attack | `Y` |
+
+### 🎮 Controller (PlayStation)
+
+| Action | Button |
+|---|---|
+| Move | Left Stick / D-Pad |
+| Attack | `□` (Square) |
+| Dash / Dodge | `○` (Circle) |
+| Parry Attack | `△` (Triangle) |
+
+### 📱 Mobile
+
+| Action | Input |
+|---|---|
+| Move | On-screen joystick (left thumb) |
+| Attack | On-screen button |
+| Dash / Dodge | On-screen button |
+| Parry Attack | On-screen button |
 
 ---
 
@@ -76,7 +106,7 @@
 ## 📊 Overall Progress
 
 ```
-Total Completion  █████████████████░░░  85%
+Total Completion  ██████████████████░░  90%
 ```
 
 ---
@@ -84,6 +114,18 @@ Total Completion  █████████████████░░░  
 <a id="update-log"></a>
 
 ## 📋 Update Released Log
+
+<details open>
+<summary>🆕 v0.3.0-Alpha — Multi-Platform Update - 9 March 2026</summary>
+
+- Added **mobile platform support** — on-screen joystick and touch buttons via Unity Input System `OnScreenStick` / `OnScreenButton`
+- Added **gamepad / controller support** (Xbox and PlayStation) — all core actions mapped to controller buttons via Input System action bindings
+- `MobileControls` canvas with `CanvasScaler` (portrait 1080×1920) for adaptive mobile UI
+- On-screen stick drives `<Gamepad>/leftStick` for unified keyboard / gamepad / touch movement
+- On-screen attack, dash, and parry buttons displayed on mobile; hidden on desktop builds
+- WebGL build updated and re-deployed to GitHub Pages with multi-platform input
+
+</details>
 
 <details open>
 <summary>🆕 v0.2.0-Alpha — Parry System Update - 7 March 2026</summary>
