@@ -2,13 +2,13 @@ using UnityEngine;
 
 public class MobileOnlyUI : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-    if (!(Application.platform == RuntimePlatform.Android || 
-          Application.platform == RuntimePlatform.IPhonePlayer))
-    {
-        gameObject.SetActive(false);
-    }
+        // Show only on actual handheld devices (phones and tablets)
+        bool isPhoneOrTablet = Application.isMobilePlatform && SystemInfo.deviceType == DeviceType.Handheld;
+        if (!isPhoneOrTablet)
+        {
+            gameObject.SetActive(false);
+        }
     }
 }
