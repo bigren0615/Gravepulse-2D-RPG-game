@@ -127,8 +127,8 @@ Total Completion  ██████████████████░░  
 
 </details>
 
-<details open>
-<summary>🆕 v0.2.0-Alpha — Parry System Update - 7 March 2026</summary>
+<details>
+<summary>v0.2.0-Alpha — Parry System Update - 7 March 2026</summary>
 
 - Added parry mechanic (Space) — succeeds only during enemy yellow warning window
 - Enemy attacks now show a warning indicator before striking (yellow = parryable, red = dodge only)
