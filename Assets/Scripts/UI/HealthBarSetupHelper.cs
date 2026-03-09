@@ -22,7 +22,7 @@ public class HealthBarSetupHelper : MonoBehaviour
     public void SetupHealthBarSystem()
     {
         // Check if manager already exists
-        EnemyHealthBarManager existingManager = FindObjectOfType<EnemyHealthBarManager>();
+        EnemyHealthBarManager existingManager = FindFirstObjectByType<EnemyHealthBarManager>();
         if (existingManager != null)
         {
             Debug.Log("EnemyHealthBarManager already exists in scene!");
@@ -41,7 +41,7 @@ public class HealthBarSetupHelper : MonoBehaviour
     [ContextMenu("Force Re-Register All Enemies")]
     public void ForceRegisterAllEnemies()
     {
-        EnemyHealth[] enemies = FindObjectsOfType<EnemyHealth>();
+        EnemyHealth[] enemies = FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None);
         
         if (EnemyHealthBarManager.Instance == null)
         {

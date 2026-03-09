@@ -1,10 +1,17 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
+    private PlayerControls controls;
+    private Vector2 movementInput;
+    private Rigidbody2D rb;
+    private Animator animator;
+    private Collider2D col;
+
     [Header("Movement")]
     public float moveSpeed = 5f;
     public SpriteRenderer spriteRenderer;
@@ -49,11 +56,6 @@ public class PlayerController : MonoBehaviour
     private Vector2 attackDir;
     private HashSet<Collider2D> hitEnemiesThisAttack = new HashSet<Collider2D>(); // Track hit enemies
 
-    private Vector2 movementInput;
-    private Rigidbody2D rb;
-    private Animator animator;
-    private Collider2D col;
-
     // ---- Vital View afterimage trail ----
     private Coroutine afterimageCoroutine;
     private bool wasInVitalView;
@@ -68,11 +70,14 @@ public class PlayerController : MonoBehaviour
     [Tooltip("How far in front of the player (along attackDir) the spark spawns — tune to sit at the weapon tip.")]
     [SerializeField] private float parrySparkOffset = 0.5f;
 
+
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         col = GetComponent<Collider2D>();
+        controls = new PlayerControls();
 
         // Auto-resolve solid layer by name if not set in Inspector
         if (solidLayer.value == 0)
@@ -93,7 +98,7 @@ public class PlayerController : MonoBehaviour
         // Dash input — use unscaled time so cooldown works correctly during Vital View bullet time
         if (!isDashing && Time.unscaledTime >= lastDashTime + dashCooldown)
         {
-            if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetMouseButtonDown(1)) // Shift or Right Click
+            if (controls.Player.Dash.triggered) // Shift or Right Click
             {
                 StartCoroutine(Dash());
             }
@@ -103,14 +108,14 @@ public class PlayerController : MonoBehaviour
         // Use unscaled time so the cooldown isn't stretched during Vital View bullet time
         if (Time.unscaledTime >= lastAttackTime + attackCooldown)
         {
-            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Z))
+            if (controls.Player.Attack.triggered)
             {
                 Attack();
             }
         }
 
         // Parry input (Space) — succeeds only when an enemy shows a yellow warning indicator
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (controls.Player.Parry.triggered)
         {
             AttemptParry();
         }
@@ -142,14 +147,24 @@ public class PlayerController : MonoBehaviour
         HandleFootsteps();       // Footsteps after movement
         DepenetrateFromSolids(); // Continuously push out of any wall overlap (catches dash tunnelling)
     }
+    private void OnEnable()
+    {
+        controls.Enable();
+    }
+
+    private void OnDisable()
+    {
+        controls.Disable();
+        // Safety net: restore enemy collision if the object is disabled or destroyed mid-dash.
+        SetEnemyCollisionIgnored(false);
+    }
 
     // 1️ Read input every frame (responsive)
     private void ReadInput()
     {
         if (isDashing) return; // Ignore normal input during dash
 
-        movementInput.x = Input.GetAxisRaw("Horizontal");
-        movementInput.y = Input.GetAxisRaw("Vertical");
+        movementInput = controls.Player.Move.ReadValue<Vector2>();
 
         // Normalize so diagonal is not faster
         movementInput = movementInput.normalized;
@@ -193,7 +208,7 @@ public class PlayerController : MonoBehaviour
 
         // Check if we're currently in the Attack or Parry state (any layer, but typically layer 0)
         bool isInAttackState = animator.GetCurrentAnimatorStateInfo(0).IsName("Attack");
-        bool isInParryState  = animator.GetCurrentAnimatorStateInfo(0).IsName("Parry");
+        bool isInParryState = animator.GetCurrentAnimatorStateInfo(0).IsName("Parry");
 
         // Keep using attackDir if we're locked OR still in attack/parry state
         if (facingLocked || isInAttackState || isInParryState)
@@ -296,8 +311,8 @@ public class PlayerController : MonoBehaviour
                     attackAxis = lastMoveDir;
 
                 // Two perpendicular escape options
-                Vector2 perpCCW = new Vector2(-attackAxis.y,  attackAxis.x);  // 90° counter-clockwise
-                Vector2 perpCW  = new Vector2( attackAxis.y, -attackAxis.x);  // 90° clockwise
+                Vector2 perpCCW = new Vector2(-attackAxis.y, attackAxis.x);  // 90° counter-clockwise
+                Vector2 perpCW = new Vector2(attackAxis.y, -attackAxis.x);  // 90° clockwise
 
                 // Pick the perpendicular closest to the player's current movement intent
                 Vector2 inputRef = movementInput != Vector2.zero ? movementInput : lastMoveDir;
@@ -389,7 +404,7 @@ public class PlayerController : MonoBehaviour
                         : new Vector2(0f, Mathf.Sign(raw.y));
 
                     // Lock facing toward the attacker (mirrors how AttackStart works)
-                    attackDir   = parryDir;
+                    attackDir = parryDir;
                     lastMoveDir = parryDir;
                     facingLocked = true;
 
@@ -521,7 +536,7 @@ public class PlayerController : MonoBehaviour
 
             // Check if enemy is within attack angle
             float angleToEnemy = Vector2.Angle(attackDir, dirToEnemy);
-            
+
             if (angleToEnemy <= attackAngle / 2f)
             {
                 // Enemy is within attack arc - deal damage
@@ -531,7 +546,7 @@ public class PlayerController : MonoBehaviour
                     enemyScript.TakeDamage(attackDamage);
                     hitEnemiesThisAttack.Add(enemy); // Mark as hit
                     hitAnyEnemy = true; // Mark that we hit an enemy
-                    
+
                     // Visual feedback for debugging
                     if (showAttackDebug)
                     {
@@ -610,7 +625,7 @@ public class PlayerController : MonoBehaviour
         // Draw attack arc
         Vector2 direction = facingLocked ? attackDir : lastMoveDir;
         Vector3 playerPos = transform.position;
-        
+
         // Draw center line
         Gizmos.color = Color.red;
         Gizmos.DrawLine(playerPos, playerPos + (Vector3)direction * attackRange);
@@ -618,15 +633,15 @@ public class PlayerController : MonoBehaviour
         // Draw attack cone edges
         Gizmos.color = Color.cyan;
         float halfAngle = attackAngle / 2f;
-        
+
         // Left edge
         Vector2 leftDir = Rotate(direction, -halfAngle);
         Gizmos.DrawLine(playerPos, playerPos + (Vector3)leftDir * attackRange);
-        
+
         // Right edge
         Vector2 rightDir = Rotate(direction, halfAngle);
         Gizmos.DrawLine(playerPos, playerPos + (Vector3)rightDir * attackRange);
-        
+
         // Draw arc
         int segments = 20;
         Vector3 previousPoint = playerPos + (Vector3)leftDir * attackRange;
@@ -657,17 +672,17 @@ public class PlayerController : MonoBehaviour
         if (spriteRenderer == null || spriteRenderer.sprite == null) return;
 
         GameObject ghost = new GameObject("VV_Afterimage");
-        ghost.transform.position  = transform.position;
-        ghost.transform.rotation  = transform.rotation;
+        ghost.transform.position = transform.position;
+        ghost.transform.rotation = transform.rotation;
         ghost.transform.localScale = transform.localScale;
 
         SpriteRenderer ghostSR = ghost.AddComponent<SpriteRenderer>();
-        ghostSR.sprite           = spriteRenderer.sprite;
-        ghostSR.flipX            = spriteRenderer.flipX;
-        ghostSR.flipY            = spriteRenderer.flipY;
+        ghostSR.sprite = spriteRenderer.sprite;
+        ghostSR.flipX = spriteRenderer.flipX;
+        ghostSR.flipY = spriteRenderer.flipY;
         ghostSR.sortingLayerName = spriteRenderer.sortingLayerName;
-        ghostSR.sortingOrder     = spriteRenderer.sortingOrder - 1; // always just behind player
-        ghostSR.color            = new Color(1f, 0.75f, 0.3f, 0.65f); // warm orange, semi-transparent
+        ghostSR.sortingOrder = spriteRenderer.sortingOrder - 1; // always just behind player
+        ghostSR.color = new Color(1f, 0.75f, 0.3f, 0.65f); // warm orange, semi-transparent
 
         StartCoroutine(FadeAfterimage(ghostSR, 0.22f));
     }
@@ -732,11 +747,5 @@ public class PlayerController : MonoBehaviour
         for (int i = 0; i < 32; i++)
             if ((maskValue & (1 << i)) != 0)
                 Physics2D.IgnoreLayerCollision(playerLayer, i, ignore);
-    }
-
-    private void OnDisable()
-    {
-        // Safety net: restore enemy collision if the object is disabled or destroyed mid-dash.
-        SetEnemyCollisionIgnored(false);
     }
 }

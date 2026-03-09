@@ -53,7 +53,7 @@ public class HealthBarSystemValidator : MonoBehaviour
 
     private void ValidateHealthBarManager()
     {
-        EnemyHealthBarManager manager = FindObjectOfType<EnemyHealthBarManager>();
+        EnemyHealthBarManager manager = FindFirstObjectByType<EnemyHealthBarManager>();
         
         if (manager == null)
         {
@@ -98,7 +98,7 @@ public class HealthBarSystemValidator : MonoBehaviour
 
     private void ValidateEnemies()
     {
-        EnemyHealth[] enemies = FindObjectsOfType<EnemyHealth>();
+        EnemyHealth[] enemies = FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None);
         
         if (enemies.Length == 0)
         {
@@ -146,7 +146,7 @@ public class HealthBarSystemValidator : MonoBehaviour
     private void ValidateIntegration()
     {
         // Check if EnemyHealth has the health bar code integrated
-        EnemyHealth[] enemies = FindObjectsOfType<EnemyHealth>();
+        EnemyHealth[] enemies = FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None);
         
         if (enemies.Length > 0)
         {
@@ -226,7 +226,7 @@ public class HealthBarSystemValidator : MonoBehaviour
     [ContextMenu("Test Damage Enemy")]
     public void TestDamageEnemy()
     {
-        EnemyHealth[] enemies = FindObjectsOfType<EnemyHealth>();
+        EnemyHealth[] enemies = FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None);
         
         if (enemies.Length == 0)
         {
@@ -253,7 +253,7 @@ public class HealthBarSystemValidator : MonoBehaviour
         Debug.Log("📋 ENEMY HEALTH BAR SYSTEM INFO");
         Debug.Log("════════════════════════════════════════════════");
 
-        EnemyHealthBarManager manager = FindObjectOfType<EnemyHealthBarManager>();
+        EnemyHealthBarManager manager = FindFirstObjectByType<EnemyHealthBarManager>();
         if (manager != null)
         {
             Debug.Log($"Manager: {manager.gameObject.name}");
@@ -264,7 +264,7 @@ public class HealthBarSystemValidator : MonoBehaviour
             Debug.LogWarning("No manager found");
         }
 
-        EnemyHealth[] enemies = FindObjectsOfType<EnemyHealth>();
+        EnemyHealth[] enemies = FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None);
         Debug.Log($"Enemies in scene: {enemies.Length}");
 
         Debug.Log("════════════════════════════════════════════════");

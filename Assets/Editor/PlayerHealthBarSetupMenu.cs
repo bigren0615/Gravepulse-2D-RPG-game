@@ -11,7 +11,7 @@ public class PlayerHealthBarSetupMenu
     public static void CreatePlayerHealthBar()
     {
         // Check if a Canvas exists, if not create one
-        Canvas canvas = GameObject.FindObjectOfType<Canvas>();
+        Canvas canvas = GameObject.FindFirstObjectByType<Canvas>();
         if (canvas == null)
         {
             GameObject canvasObj = new GameObject("Canvas");
@@ -53,7 +53,7 @@ public class PlayerHealthBarSetupMenu
         }
 
         // Check if player health bar already exists
-        PlayerHealthBarUI existingHealthBar = GameObject.FindObjectOfType<PlayerHealthBarUI>();
+        PlayerHealthBarUI existingHealthBar = GameObject.FindFirstObjectByType<PlayerHealthBarUI>();
         if (existingHealthBar != null)
         {
             Debug.LogWarning("Player Health Bar UI already exists in the scene!");
@@ -166,7 +166,7 @@ public class PlayerHealthBarSetupMenu
     [MenuItem("Tools/Player Health Bar/Select Player Health Bar")]
     public static void SelectPlayerHealthBar()
     {
-        PlayerHealthBarUI healthBar = GameObject.FindObjectOfType<PlayerHealthBarUI>();
+        PlayerHealthBarUI healthBar = GameObject.FindFirstObjectByType<PlayerHealthBarUI>();
         if (healthBar != null)
         {
             Selection.activeGameObject = healthBar.gameObject;
@@ -181,7 +181,7 @@ public class PlayerHealthBarSetupMenu
     [MenuItem("Tools/Player Health Bar/Select Player Health Bar", true)]
     public static bool SelectPlayerHealthBarValidation()
     {
-        return GameObject.FindObjectOfType<PlayerHealthBarUI>() != null;
+        return GameObject.FindFirstObjectByType<PlayerHealthBarUI>() != null;
     }
 
     /// <summary>

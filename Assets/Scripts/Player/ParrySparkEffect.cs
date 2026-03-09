@@ -126,6 +126,7 @@ public class ParrySparkEffect : MonoBehaviour
         child.transform.SetParent(transform, false);
 
         var ps = child.AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var r  = ps.GetComponent<ParticleSystemRenderer>();
 
         var main = ps.main;
@@ -199,6 +200,7 @@ public class ParrySparkEffect : MonoBehaviour
         child.transform.SetParent(transform, false);
 
         var ps = child.AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var r  = ps.GetComponent<ParticleSystemRenderer>();
 
         var main = ps.main;
@@ -259,6 +261,7 @@ public class ParrySparkEffect : MonoBehaviour
         child.transform.SetParent(transform, false);
 
         var ps = child.AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var r  = ps.GetComponent<ParticleSystemRenderer>();
 
         var main = ps.main;

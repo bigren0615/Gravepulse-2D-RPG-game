@@ -10,7 +10,7 @@ public class HealthBarSetupMenu
     public static void CreateHealthBarSystem()
     {
         // Check if manager already exists
-        EnemyHealthBarManager existingManager = Object.FindObjectOfType<EnemyHealthBarManager>();
+        EnemyHealthBarManager existingManager = Object.FindFirstObjectByType<EnemyHealthBarManager>();
         if (existingManager != null)
         {
             Debug.LogWarning("EnemyHealthBarManager already exists in the scene!");
@@ -70,7 +70,7 @@ public class HealthBarSetupMenu
     [MenuItem("Tools/Enemy Health Bars/Select Health Bar Manager")]
     public static void SelectManager()
     {
-        EnemyHealthBarManager manager = Object.FindObjectOfType<EnemyHealthBarManager>();
+        EnemyHealthBarManager manager = Object.FindFirstObjectByType<EnemyHealthBarManager>();
         if (manager != null)
         {
             Selection.activeGameObject = manager.gameObject;
@@ -85,6 +85,6 @@ public class HealthBarSetupMenu
     [MenuItem("Tools/Enemy Health Bars/Select Health Bar Manager", true)]
     public static bool SelectManagerValidation()
     {
-        return Object.FindObjectOfType<EnemyHealthBarManager>() != null;
+        return Object.FindFirstObjectByType<EnemyHealthBarManager>() != null;
     }
 }
