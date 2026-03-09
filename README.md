@@ -83,7 +83,7 @@ Total Completion  █████████████████░░░  
 
 <a id="update-log"></a>
 
-## 📋 Update Log
+## 📋 Update Released Log
 
 <details open>
 <summary>🆕 v0.2.0-Alpha — Parry System Update - 7 March 2026</summary>
