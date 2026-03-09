@@ -165,13 +165,19 @@ public class PlayerController : MonoBehaviour
 #if UNITY_WEBGL
         movementInput = Vector2.zero;
 
-        // Horizontal
-        if (Keyboard.current.aKey != null && Keyboard.current.aKey.isPressed) movementInput.x -= 1f;
-        if (Keyboard.current.dKey != null && Keyboard.current.dKey.isPressed) movementInput.x += 1f;
+        // Keyboard (WASD) — works on desktop browser
+        if (Keyboard.current != null)
+        {
+            if (Keyboard.current.aKey.isPressed) movementInput.x -= 1f;
+            if (Keyboard.current.dKey.isPressed) movementInput.x += 1f;
+            if (Keyboard.current.wKey.isPressed) movementInput.y += 1f;
+            if (Keyboard.current.sKey.isPressed) movementInput.y -= 1f;
+        }
 
-        // Vertical
-        if (Keyboard.current.wKey != null && Keyboard.current.wKey.isPressed) movementInput.y += 1f;
-        if (Keyboard.current.sKey != null && Keyboard.current.sKey.isPressed) movementInput.y -= 1f;
+        // Virtual joystick (OnScreenStick feeds into controls.Player.Move) — works on mobile browser
+        Vector2 joystickInput = controls.Player.Move.ReadValue<Vector2>();
+        if (joystickInput.sqrMagnitude > movementInput.sqrMagnitude)
+            movementInput = joystickInput;
 
         // Normalize diagonal
         movementInput = movementInput.normalized;
