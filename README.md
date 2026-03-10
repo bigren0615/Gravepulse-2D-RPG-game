@@ -47,8 +47,8 @@
 | Action | Button |
 |---|---|
 | Move | Left Stick / D-Pad |
-| Attack | `X` |
-| Dash / Dodge | `B` |
+| Attack | `B` |
+| Dash / Dodge | `X` |
 | Parry Attack | `Y` |
 
 ### 🎮 Controller (PlayStation)
@@ -57,7 +57,7 @@
 |---|---|
 | Move | Left Stick / D-Pad |
 | Attack | `□` (Square) |
-| Dash / Dodge | `○` (Circle) |
+| Dash / Dodge | `x` (Circle) |
 | Parry Attack | `△` (Triangle) |
 
 ### 📱 Mobile
