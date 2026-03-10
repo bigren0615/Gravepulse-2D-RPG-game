@@ -36,10 +36,16 @@ public class DashButtonUI : MonoBehaviour
     public Image inputHintImage;
     [Tooltip("PC/KB+Mouse hint — assign Assets/Sprites/Ui/pc/mouse_right_outline.png")]
     public Sprite kbmSprite;
+    [Tooltip("Size of the KB/Mouse hint image (mouse icon is usually taller than square controller buttons).")]
+    public Vector2 kbmSize = new Vector2(30f, 48f);
     [Tooltip("PlayStation hint — assign Assets/Sprites/Ui/ps/playstation_button_cross.png")]
     public Sprite psSprite;
+    [Tooltip("Size of the PlayStation hint image.")]
+    public Vector2 psSize = new Vector2(36f, 36f);
     [Tooltip("Xbox hint — assign Assets/Sprites/Ui/xbox/xbox_button_x.png")]
     public Sprite xboxSprite;
+    [Tooltip("Size of the Xbox hint image.")]
+    public Vector2 xboxSize = new Vector2(36f, 36f);
 
     [Header("Colours")]
     [Tooltip("Background tint when dash is ready.")]
@@ -141,15 +147,20 @@ public class DashButtonUI : MonoBehaviour
     {
         DetectInputScheme();
 
-        Sprite target = _currentScheme switch
+        Sprite target;
+        Vector2 targetSize;
+        switch (_currentScheme)
         {
-            InputScheme.PlayStation  => psSprite,
-            InputScheme.Xbox         => xboxSprite,
-            _                        => kbmSprite,
-        };
+            case InputScheme.PlayStation: target = psSprite;   targetSize = psSize;   break;
+            case InputScheme.Xbox:        target = xboxSprite; targetSize = xboxSize; break;
+            default:                      target = kbmSprite;  targetSize = kbmSize;  break;
+        }
 
         if (inputHintImage.sprite != target)
+        {
             inputHintImage.sprite = target;
+            inputHintImage.rectTransform.sizeDelta = targetSize;
+        }
 
         // Keep image visible only when a sprite is assigned
         bool show = target != null;
