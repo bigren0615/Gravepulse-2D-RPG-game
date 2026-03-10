@@ -149,12 +149,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   damageTextPrefab: {fileID: 2310015982556455010, guid: bf761de63fbf2e041923421d6c879513, type: 3}
-  damageColorTop: {r: 0.898, g: 0.85135067, b: 0.379026, a: 1}
-  damageColorBottom: {r: 0.761, g: 0.5648047, b: 0.07728906, a: 1}
-  criticalColorTop: {r: 0.898, g: 0.47232464, b: 0.2565714, a: 1}
-  criticalColorBottom: {r: 0.727, g: 0.21582812, b: 0, a: 1}
-  playerDamageColorTop: {r: 0.90300006, g: 0.2680781, b: 0.2680781, a: 1}
-  playerDamageColorBottom: {r: 0.59099996, g: 0, b: 0, a: 1}
+  damageColorTop: {r: 1, g: 0.9370498, b: 0.3075471, a: 1}
+  damageColorBottom: {r: 0.89433956, g: 0.66983336, b: 0.113058, a: 1}
+  criticalColorTop: {r: 1, g: 0.5297399, b: 0.2924527, a: 1}
+  criticalColorBottom: {r: 0.85660374, g: 0.25466597, b: 0, a: 1}
+  playerDamageColorTop: {r: 1, g: 0.3150943, b: 0.3150943, a: 1}
+  playerDamageColorBottom: {r: 0.6679245, g: 0, b: 0, a: 1}
   initialPoolSize: 10
   maxPoolSize: 30
   verticalOffset: 0.2
@@ -704,14 +704,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0, b: 0, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.9019608}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: -1843197933104017171, guid: 0843cf3cf3d19444f88a160e42fb6fd9, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -5868,13 +5868,14 @@ MonoBehaviour:
   readyFlashImage: {fileID: 1123108388}
   inputHintImage: {fileID: 2032829339}
   inputHintBgImage: {fileID: 554650915}
-  hintBgPadding: {x: 8, y: 8}
+  hintBgPadding: {x: 5, y: 5}
   kbmSprite: {fileID: -3288219961904825860, guid: dd00c13e5694d8e43abaac90fb40038f, type: 3}
   kbmSize: {x: 27, y: 36}
   psSprite: {fileID: -8765976750552961858, guid: 85251d1dc81f76d44a7f5e66cad9992d, type: 3}
   psSize: {x: 36, y: 36}
   xboxSprite: {fileID: -9085605288992608834, guid: 6e05a214811c4ef428f173a8fed2e8c1, type: 3}
   xboxSize: {x: 36, y: 36}
+  hintBgColor: {r: 0, g: 0, b: 0, a: 1}
   bgReadyColor: {r: 0.78, g: 0.78, b: 0.78, a: 1}
   bgCooldownColor: {r: 0.45, g: 0.45, b: 0.45, a: 1}
   iconReadyColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
