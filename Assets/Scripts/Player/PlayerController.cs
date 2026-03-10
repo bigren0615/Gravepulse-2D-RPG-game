@@ -24,6 +24,13 @@ public class PlayerController : MonoBehaviour
     private float lastDashTime = -Mathf.Infinity;
     private Vector2 lastMoveDir = Vector2.down;
 
+    // ---- Dash cooldown accessors for UI ----
+    /// <summary>0 = cooldown just started, 1 = fully ready (use this for UI fill)</summary>
+    public float DashCooldownProgress =>
+        Mathf.Clamp01((Time.unscaledTime - lastDashTime) / dashCooldown);
+    public bool IsDashReady => !isDashing && Time.unscaledTime >= lastDashTime + dashCooldown;
+    public float DashCooldownDuration => dashCooldown;
+
     [Header("Dash Effects")]
     public GameObject dashEffectPrefab;
 
@@ -100,7 +107,12 @@ public class PlayerController : MonoBehaviour
         {
             if (controls.Player.Dash.triggered) // Shift or Right Click
             {
-                StartCoroutine(Dash());
+                // Suppress right-click dash while cursor is visible (Left Alt held)
+                bool mouseBlocked = CursorManager.IsCursorVisible &&
+                                    Mouse.current != null &&
+                                    Mouse.current.rightButton.wasPressedThisFrame;
+                if (!mouseBlocked)
+                    StartCoroutine(Dash());
             }
         }
 
@@ -110,7 +122,12 @@ public class PlayerController : MonoBehaviour
         {
             if (controls.Player.Attack.triggered)
             {
-                Attack();
+                // Suppress left-click attack while cursor is visible (Left Alt held)
+                bool mouseBlocked = CursorManager.IsCursorVisible &&
+                                    Mouse.current != null &&
+                                    Mouse.current.leftButton.wasPressedThisFrame;
+                if (!mouseBlocked)
+                    Attack();
             }
         }
 
