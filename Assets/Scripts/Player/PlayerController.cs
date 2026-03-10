@@ -107,7 +107,12 @@ public class PlayerController : MonoBehaviour
         {
             if (controls.Player.Dash.triggered) // Shift or Right Click
             {
-                StartCoroutine(Dash());
+                // Suppress right-click dash while cursor is visible (Left Alt held)
+                bool mouseBlocked = CursorManager.IsCursorVisible &&
+                                    Mouse.current != null &&
+                                    Mouse.current.rightButton.wasPressedThisFrame;
+                if (!mouseBlocked)
+                    StartCoroutine(Dash());
             }
         }
 
@@ -117,7 +122,12 @@ public class PlayerController : MonoBehaviour
         {
             if (controls.Player.Attack.triggered)
             {
-                Attack();
+                // Suppress left-click attack while cursor is visible (Left Alt held)
+                bool mouseBlocked = CursorManager.IsCursorVisible &&
+                                    Mouse.current != null &&
+                                    Mouse.current.leftButton.wasPressedThisFrame;
+                if (!mouseBlocked)
+                    Attack();
             }
         }
 
