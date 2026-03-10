@@ -57,7 +57,7 @@
 |---|---|
 | Move | Left Stick / D-Pad |
 | Attack | `□` (Square) |
-| Dash / Dodge | `x` (Circle) |
+| Dash / Dodge | `x` (Cross) |
 | Parry Attack | `△` (Triangle) |
 
 ### 📱 Mobile
