@@ -24,6 +24,13 @@ public class PlayerController : MonoBehaviour
     private float lastDashTime = -Mathf.Infinity;
     private Vector2 lastMoveDir = Vector2.down;
 
+    // ---- Dash cooldown accessors for UI ----
+    /// <summary>0 = cooldown just started, 1 = fully ready (use this for UI fill)</summary>
+    public float DashCooldownProgress =>
+        Mathf.Clamp01((Time.unscaledTime - lastDashTime) / dashCooldown);
+    public bool IsDashReady => !isDashing && Time.unscaledTime >= lastDashTime + dashCooldown;
+    public float DashCooldownDuration => dashCooldown;
+
     [Header("Dash Effects")]
     public GameObject dashEffectPrefab;
 
