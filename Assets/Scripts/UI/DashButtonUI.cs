@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Zenless Zone Zero-style dash button with radial cooldown overlay.
@@ -30,6 +31,16 @@ public class DashButtonUI : MonoBehaviour
     [Tooltip("White circle that flashes briefly when dash becomes ready.")]
     public Image readyFlashImage;
 
+    [Header("Input Hint")]
+    [Tooltip("Image placed below (or inside) the button that shows the bound key/button. Leave null to disable hint.")]
+    public Image inputHintImage;
+    [Tooltip("PC/KB+Mouse hint — assign Assets/Sprites/Ui/pc/mouse_right_outline.png")]
+    public Sprite kbmSprite;
+    [Tooltip("PlayStation hint — assign Assets/Sprites/Ui/ps/playstation_button_cross.png")]
+    public Sprite psSprite;
+    [Tooltip("Xbox hint — assign Assets/Sprites/Ui/xbox/xbox_button_x.png")]
+    public Sprite xboxSprite;
+
     [Header("Colours")]
     [Tooltip("Background tint when dash is ready.")]
     public Color bgReadyColor = new Color(0.78f, 0.78f, 0.78f, 1f);   // light grey
@@ -53,9 +64,18 @@ public class DashButtonUI : MonoBehaviour
     private Coroutine pulseCoroutine;
     private Vector2 _flashStartSize;
 
+    private enum InputScheme { KeyboardMouse, PlayStation, Xbox }
+    private InputScheme _currentScheme = InputScheme.KeyboardMouse;
+    private bool _isMobile;
+
     // ───────────────────────────────────────────────────────────────
     private void Awake()
     {
+        _isMobile = Application.isMobilePlatform || SystemInfo.deviceType == DeviceType.Handheld;
+
+        // Hide hint entirely on mobile — on-screen buttons replace keyboard/controller hints.
+        if (inputHintImage != null)
+            inputHintImage.gameObject.SetActive(!_isMobile);
         // The ring must start at the exact button root size.
         // Background (a sibling drawn above it) covers the ring's center,
         // so only the part that expands BEYOND the button boundary is visible
@@ -110,6 +130,97 @@ public class DashButtonUI : MonoBehaviour
             TriggerReadyPulse();
 
         wasReady = isReady;
+
+        // ── Input hint icon ───────────────────────────────────────
+        if (!_isMobile && inputHintImage != null)
+            UpdateInputHint();
+    }
+
+    // ── Input scheme detection ────────────────────────────────────
+    private void UpdateInputHint()
+    {
+        DetectInputScheme();
+
+        Sprite target = _currentScheme switch
+        {
+            InputScheme.PlayStation  => psSprite,
+            InputScheme.Xbox         => xboxSprite,
+            _                        => kbmSprite,
+        };
+
+        if (inputHintImage.sprite != target)
+            inputHintImage.sprite = target;
+
+        // Keep image visible only when a sprite is assigned
+        bool show = target != null;
+        if (inputHintImage.gameObject.activeSelf != show)
+            inputHintImage.gameObject.SetActive(show);
+    }
+
+    private void DetectInputScheme()
+    {
+        // ── Gamepad: only switch when there is REAL intentional input ──
+        // wasUpdatedThisFrame fires every frame on a connected controller (driver polling),
+        // so we must check for actual button presses or meaningful stick movement instead.
+        Gamepad gp = Gamepad.current;
+        if (gp != null && HasGamepadActivity(gp))
+        {
+            _currentScheme = IsPlayStation(gp) ? InputScheme.PlayStation : InputScheme.Xbox;
+            return;
+        }
+
+        // ── KB/Mouse: switch on key press, mouse click, or mouse movement ──
+        // Mouse.wasUpdatedThisFrame also fires continuously, so we check delta/buttons.
+        bool kbPressed    = Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame;
+        bool mouseMoved   = Mouse.current    != null && Mouse.current.delta.ReadValue().sqrMagnitude > 1f;
+        bool mouseClicked = Mouse.current    != null &&
+                            (Mouse.current.leftButton.wasPressedThisFrame ||
+                             Mouse.current.rightButton.wasPressedThisFrame);
+        if (kbPressed || mouseMoved || mouseClicked)
+            _currentScheme = InputScheme.KeyboardMouse;
+    }
+
+    /// <summary>
+    /// Returns true only when the gamepad has intentional input this frame —
+    /// a button press OR a stick/trigger past its deadzone.
+    /// This prevents the connected-but-idle controller from triggering scheme switches.
+    /// </summary>
+    private static bool HasGamepadActivity(Gamepad gp)
+    {
+        const float stickDeadzone    = 0.2f;
+        const float triggerDeadzone  = 0.1f;
+
+        return gp.buttonSouth.wasPressedThisFrame  ||
+               gp.buttonNorth.wasPressedThisFrame  ||
+               gp.buttonEast.wasPressedThisFrame   ||
+               gp.buttonWest.wasPressedThisFrame   ||
+               gp.startButton.wasPressedThisFrame  ||
+               gp.selectButton.wasPressedThisFrame ||
+               gp.leftShoulder.wasPressedThisFrame ||
+               gp.rightShoulder.wasPressedThisFrame||
+               gp.dpad.up.wasPressedThisFrame      ||
+               gp.dpad.down.wasPressedThisFrame    ||
+               gp.dpad.left.wasPressedThisFrame    ||
+               gp.dpad.right.wasPressedThisFrame   ||
+               gp.leftTrigger.ReadValue()  > triggerDeadzone  ||
+               gp.rightTrigger.ReadValue() > triggerDeadzone  ||
+               gp.leftStick.ReadValue().sqrMagnitude  > stickDeadzone * stickDeadzone ||
+               gp.rightStick.ReadValue().sqrMagnitude > stickDeadzone * stickDeadzone;
+    }
+
+    /// <summary>
+    /// Returns true when the gamepad appears to be a PlayStation controller.
+    /// Relies on the device description string supplied by the OS/driver.
+    /// </summary>
+    private static bool IsPlayStation(Gamepad gp)
+    {
+        string combined = ((gp.description.product ?? "") + " " + gp.name).ToLowerInvariant();
+        return combined.Contains("dualshock") ||
+               combined.Contains("dualsense") ||
+               combined.Contains("playstation") ||
+               combined.Contains("ps4") ||
+               combined.Contains("ps5") ||
+               combined.Contains("sony");
     }
 
     private void TriggerReadyPulse()
