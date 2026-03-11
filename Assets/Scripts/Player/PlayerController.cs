@@ -31,6 +31,12 @@ public class PlayerController : MonoBehaviour
     public bool IsDashReady => !isDashing && Time.unscaledTime >= lastDashTime + dashCooldown;
     public float DashCooldownDuration => dashCooldown;
 
+    // ---- Attack cooldown accessors for UI ----
+    /// <summary>0 = cooldown just started, 1 = fully ready (use this for UI fill)</summary>
+    public float AttackCooldownProgress =>
+        Mathf.Clamp01((Time.unscaledTime - lastAttackTime) / attackCooldown);
+    public bool IsAttackReady => Time.unscaledTime >= lastAttackTime + attackCooldown;
+
     [Header("Dash Effects")]
     public GameObject dashEffectPrefab;
 
@@ -70,6 +76,9 @@ public class PlayerController : MonoBehaviour
     // ---- Parry ----
     private Coroutine parryFacingCoroutine;
     private Coroutine parryHitstopCoroutine;
+    private float lastParrySuccessTime = -Mathf.Infinity;
+    /// <summary>Timestamp (unscaled) of the most recent successful parry. UI uses this to detect the success moment.</summary>
+    public float LastParrySuccessTime => lastParrySuccessTime;
     [Tooltip("Seconds (real-time) after parry input before hitstop+SFX fires. Tune to match the clash frame of your Parry animation. Set to 0 once you wire the ParryImpact animation event.")]
     [SerializeField] private float parryImpactDelay = 0.1f;
 
@@ -468,6 +477,7 @@ public class PlayerController : MonoBehaviour
                     if (parryFacingCoroutine != null) StopCoroutine(parryFacingCoroutine);
                     parryFacingCoroutine = StartCoroutine(ParryFacingFailsafe(1f));
 
+                    lastParrySuccessTime = Time.unscaledTime;
                     Debug.Log($"[Parry] SUCCESS! Facing: {parryDir}");
                     return;
                 }
