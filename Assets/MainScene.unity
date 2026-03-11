@@ -944,7 +944,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.10852, y: -96.3}
+  m_AnchoredPosition: {x: 0, y: -99.8}
   m_SizeDelta: {x: 36.783, y: 46.895}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &703642326
@@ -2246,7 +2246,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -96.3}
+  m_AnchoredPosition: {x: 0, y: -99.8}
   m_SizeDelta: {x: 37, y: 46.8951}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1155995820
@@ -2328,7 +2328,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 396, y: -336.97}
+  m_AnchoredPosition: {x: 399, y: -336}
   m_SizeDelta: {x: 120, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1181394532
@@ -2442,18 +2442,18 @@ MonoBehaviour:
   iconImage: {fileID: 2022140320}
   inputHintImage: {fileID: 1155995820}
   inputHintBgImage: {fileID: 703642326}
-  hintBgPadding: {x: 8, y: 8}
+  hintBgPadding: {x: 5, y: 5}
   kbmSprite: {fileID: 316446807246356010, guid: b0788708d17897640a8f2023ec52647d, type: 3}
   kbmSize: {x: 27, y: 36}
   psSprite: {fileID: -3572960301678450194, guid: 0c3431129dba224429c4e8976b8afeff, type: 3}
   psSize: {x: 36, y: 36}
   xboxSprite: {fileID: -9085605288992608834, guid: 6e05a214811c4ef428f173a8fed2e8c1, type: 3}
   xboxSize: {x: 36, y: 36}
-  hintBgColor: {r: 0, g: 0, b: 0, a: 0.75}
+  hintBgColor: {r: 0, g: 0, b: 0, a: 1}
   bgReadyColor: {r: 0.78, g: 0.78, b: 0.78, a: 1}
   bgCooldownColor: {r: 0.45, g: 0.45, b: 0.45, a: 1}
   iconReadyColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-  iconCooldownColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+  iconCooldownColor: {r: 0.54901963, g: 0.54901963, b: 0.54901963, a: 1}
   playerController: {fileID: 1098726795}
 --- !u!1 &1198294354
 GameObject:
