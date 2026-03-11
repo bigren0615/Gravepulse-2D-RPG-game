@@ -31,6 +31,12 @@ public class PlayerController : MonoBehaviour
     public bool IsDashReady => !isDashing && Time.unscaledTime >= lastDashTime + dashCooldown;
     public float DashCooldownDuration => dashCooldown;
 
+    // ---- Attack cooldown accessors for UI ----
+    /// <summary>0 = cooldown just started, 1 = fully ready (use this for UI fill)</summary>
+    public float AttackCooldownProgress =>
+        Mathf.Clamp01((Time.unscaledTime - lastAttackTime) / attackCooldown);
+    public bool IsAttackReady => Time.unscaledTime >= lastAttackTime + attackCooldown;
+
     [Header("Dash Effects")]
     public GameObject dashEffectPrefab;
 
