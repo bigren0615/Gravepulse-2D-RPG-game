@@ -116,7 +116,23 @@ Total Completion  ██████████████████░░  
 ## 📋 Update Released Log
 
 <details open>
-<summary>🆕 v0.3.0-Alpha — Multi-Platform Update - 9 March 2026</summary>
+<summary>🆕 v0.3.1-Alpha — Enhance Joystick & UI - 11 March 2026</summary>
+
+- Redesigned on-screen joystick with custom sprites (`joystick_circle_pad_a.png` pad + `joystick_circle_nub_c.png` nub) for a polished mobile feel
+- Added `ActionButtonUI.cs` — base class for all mobile action buttons; handles input-scheme detection (Keyboard/Mouse, Xbox, PlayStation) and automatic hint-icon switching
+- Input hint icons automatically swap between KB/Mouse, Xbox, and PlayStation icon sets per-scheme; hidden entirely on mobile (on-screen buttons replace them)
+- `DashButtonUI.cs` — radial-fill cooldown overlay (Image Type: Filled / Radial360) + ready-state white ring flash animation that expands outward when dash is recharged
+- `AttackButtonUI.cs` — visual cooldown tinting (ready colour ↔ cooldown colour) driven by `PlayerController.AttackCooldownProgress`
+- `ParryButtonUI.cs` — yellow ripple ring flash animation triggered on successful parry via `PlayerController.LastParrySuccessTime`
+- `CursorManager.cs` — custom hardware cursor applied on desktop builds
+- `DesktopOnlyUI.cs` — counterpart to `MobileOnlyUI.cs`; hides desktop-only UI elements on mobile/touch devices
+- Per-scheme button icon sizing: KB/Mouse 30 × 48 px, Xbox/PlayStation 36 × 36 px
+- `MobileControls` canvas is fully hidden on non-mobile platforms via `MobileOnlyUI.Start()`
+
+</details>
+
+<details>
+<summary>v0.3.0-Alpha — Multi-Platform Update - 9 March 2026</summary>
 
 - Added **mobile platform support** — on-screen joystick and touch buttons via Unity Input System `OnScreenStick` / `OnScreenButton`
 - Added **gamepad / controller support** (Xbox and PlayStation) — all core actions mapped to controller buttons via Input System action bindings
@@ -522,6 +538,26 @@ public class PlayerController : MonoBehaviour
 
 ---
 
+### 🕹️ Phase 10.9 — Action Button UI & Joystick Polish
+```
+██████████████████████  100%  ✅ COMPLETE
+```
+- [x] `ActionButtonUI.cs` — base class for all on-screen action buttons
+  - Input-scheme detection (Keyboard/Mouse, Xbox, PlayStation)
+  - Automatic hint-icon and icon-size switching per active device
+  - Icon hints hidden on mobile (on-screen buttons replace keyboard/gamepad hints)
+  - Per-scheme sprite sizes: KB/Mouse 30 × 48 px, Xbox/PS 36 × 36 px
+  - Silhouette background auto-generated behind hint icons
+- [x] `AttackButtonUI.cs` — cooldown tinting driven by `PlayerController.AttackCooldownProgress`
+- [x] `DashButtonUI.cs` — radial-fill cooldown overlay + ready-state white ring flash (expands outward)
+- [x] `ParryButtonUI.cs` — yellow ripple ring animation on successful parry (`LastParrySuccessTime` timestamp)
+- [x] `CursorManager.cs` — custom hardware cursor on desktop builds
+- [x] `DesktopOnlyUI.cs` — hides desktop-only UI on mobile/touch devices (counterpart to `MobileOnlyUI.cs`)
+- [x] Custom on-screen joystick sprites (`joystick_circle_pad_a.png` pad + `joystick_circle_nub_c.png` nub)
+- [x] `MobileControls` canvas fully hidden on non-mobile platforms via `MobileOnlyUI.Start()`
+
+---
+
 <a id="core-feature-status"></a>
 
 ## ⚔️ Core Feature Status
@@ -637,7 +673,7 @@ public class PlayerController : MonoBehaviour
 
 ### 🖥️ UI / Menu
 ```
-████████████████░░░░░░   72%  🔄 IN PROGRESS
+█████████████████████░   83%  🔄 IN PROGRESS
 ```
 | Feature | Status |
 |---|:---:|
@@ -646,6 +682,13 @@ public class PlayerController : MonoBehaviour
 | Health bar manager system | ✅ |
 | Player HP bar (top-left HUD, smooth + colour gradient) | ✅ |
 | Floating damage numbers (ZZZ style, pooled) | ✅ |
+| On-screen joystick (custom pad + nub sprites) | ✅ |
+| On-screen attack / dash / parry buttons (mobile) | ✅ |
+| `ActionButtonUI` input-scheme hint icons (KB/Xbox/PS) | ✅ |
+| Dash radial-fill cooldown overlay | ✅ |
+| Parry success ripple ring animation | ✅ |
+| Mobile-only UI gating (`MobileOnlyUI` / `DesktopOnlyUI`) | ✅ |
+| Custom hardware cursor (`CursorManager`) | ✅ |
 | Main Menu screen | ❌ |
 | Pause Menu | ❌ |
 | Game Over screen | ❌ |
@@ -734,7 +777,10 @@ Assets/
 ├── Scripts/
 │   ├── Core/
 │   │   ├── AudioManager.cs                  ✅
+│   │   ├── CursorManager.cs                 ✅  (custom hardware cursor on desktop)
+│   │   ├── DesktopOnlyUI.cs                 ✅  (hides desktop-only UI on mobile)
 │   │   ├── GameManager.cs                   ✅  (combat state, hitstop camera zoom)
+│   │   ├── MobileOnlyUI.cs                  ✅  (hides mobile UI on desktop)
 │   │   └── SoundEnums.cs                    ✅
 │   ├── Enemy/
 │   │   ├── EnemyAI.cs                       ✅  (patrol / chase / search brain)
@@ -743,16 +789,21 @@ Assets/
 │   │   └── EnemyHealth.cs                   ✅  (health, damage flash, death)
 │   ├── Player/
 │   │   ├── ParrySparkEffect.cs              ✅  (procedural ZZZ-style clash VFX)
+│   │   ├── PlayerControls.cs                ✅  (auto-generated Input System wrapper)
 │   │   ├── PlayerController.cs              ✅  (movement, dash, attack, parry input)
 │   │   └── PlayerHealth.cs                  ✅  (HP, invincibility, death)
 │   └── UI/
+│       ├── ActionButtonUI.cs                ✅  (base class: input-scheme hint icons, tinting)
+│       ├── AttackButtonUI.cs                ✅  (cooldown tinting)
 │       ├── BubbleController.cs              ✅
 │       ├── DamageText.cs                    ✅  (floating damage number animation)
 │       ├── DamageTextManager.cs             ✅  (object-pooling manager)
+│       ├── DashButtonUI.cs                  ✅  (radial cooldown overlay + ready ring flash)
 │       ├── EnemyHealthBar.cs                ✅
 │       ├── EnemyHealthBarManager.cs         ✅
 │       ├── HealthBarSetupHelper.cs          ✅
 │       ├── HealthBarSystemValidator.cs      ✅
+│       ├── ParryButtonUI.cs                 ✅  (parry success ripple ring)
 │       └── PlayerHealthBarUI.cs             ✅  (player HUD health bar)
 ├── Sounds/
 │   ├── BGM/
@@ -779,6 +830,9 @@ Assets/
 │   │       ├── D_Walk.png / D_Attack.png / D_Death.png  ✅
 │   │       ├── S_Walk.png / S_Attack.png / S_Death.png  ✅
 │   │       └── U_Walk.png / U_Attack.png / U_Death.png  ✅
+│   ├── Ui/
+│   │   ├── joystick_circle_pad_a.png        ✅  (on-screen joystick base)
+│   │   └── joystick_circle_nub_c.png        ✅  (on-screen joystick nub/stick)
 │   ├── SpriteSheet.png
 │   ├── TilesetFloor.png
 │   ├── TilesetNature.png
