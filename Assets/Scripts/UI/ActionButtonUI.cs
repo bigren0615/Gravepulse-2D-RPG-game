@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,11 +7,14 @@ using UnityEngine.InputSystem;
 /// <summary>
 /// Abstract base for action button UI elements.
 /// Handles input-scheme detection, per-scheme hint icons, filled-silhouette
-/// background generation, and background/icon tint interpolation.
+/// background generation, background/icon tint interpolation, and the
+/// shared expanding ring-ripple animation.
 ///
-/// Subclasses (DashButtonUI, AttackButtonUI, …) call:
-///   • ApplyProgressTint(progress)   — lerps bg + icon colours
-///   • UpdateInputHintIfNeeded()     — refreshes the hint icon every frame
+/// Subclasses (DashButtonUI, AttackButtonUI, ParryButtonUI, …) call:
+///   • ApplyProgressTint(progress)                          — lerps bg + icon tints
+///   • UpdateInputHintIfNeeded()                            — refreshes the hint icon
+///   • RingRippleRoutine(image, startSize, mult, duration)  — expanding ring coroutine
+///   • SetImageAlpha(image, alpha)                          — alpha helper
 /// </summary>
 public abstract class ActionButtonUI : MonoBehaviour
 {
@@ -198,6 +202,51 @@ public abstract class ActionButtonUI : MonoBehaviour
                combined.Contains("ps4")         ||
                combined.Contains("ps5")         ||
                combined.Contains("sony");
+    }
+
+    // ── Ring ripple helpers (shared by DashButtonUI, ParryButtonUI, etc.) ─────────────
+
+    /// <summary>
+    /// Expanding outline ring ripple coroutine — the ring grows outward and fades.
+    /// After the animation the ring is reset to <paramref name="startSize"/> at alpha 0.
+    /// </summary>
+    protected IEnumerator RingRippleRoutine(Image ringImage, Vector2 startSize,
+                                             float expandMultiplier, float duration)
+    {
+        if (ringImage == null) yield break;
+
+        RectTransform ringRT  = ringImage.rectTransform;
+        Vector2       endSize = startSize * expandMultiplier;
+        float         elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+
+            ringRT.sizeDelta = Vector2.Lerp(startSize, endSize, t);
+
+            // Alpha: sharp rise (first 25%) then smooth fade (rest)
+            float alpha = t < 0.25f
+                ? Mathf.InverseLerp(0f, 0.25f, t) * 0.9f
+                : Mathf.Lerp(0.9f, 0f, Mathf.InverseLerp(0.25f, 1f, t));
+            SetImageAlpha(ringImage, alpha);
+
+            yield return null;
+        }
+
+        // Reset to resting state
+        ringRT.sizeDelta = startSize;
+        SetImageAlpha(ringImage, 0f);
+    }
+
+    /// <summary>Sets only the alpha channel of an Image's colour.</summary>
+    protected static void SetImageAlpha(Image img, float a)
+    {
+        if (img == null) return;
+        Color c = img.color;
+        c.a = a;
+        img.color = c;
     }
 
     /// <summary>

@@ -76,6 +76,9 @@ public class PlayerController : MonoBehaviour
     // ---- Parry ----
     private Coroutine parryFacingCoroutine;
     private Coroutine parryHitstopCoroutine;
+    private float lastParrySuccessTime = -Mathf.Infinity;
+    /// <summary>Timestamp (unscaled) of the most recent successful parry. UI uses this to detect the success moment.</summary>
+    public float LastParrySuccessTime => lastParrySuccessTime;
     [Tooltip("Seconds (real-time) after parry input before hitstop+SFX fires. Tune to match the clash frame of your Parry animation. Set to 0 once you wire the ParryImpact animation event.")]
     [SerializeField] private float parryImpactDelay = 0.1f;
 
@@ -474,6 +477,7 @@ public class PlayerController : MonoBehaviour
                     if (parryFacingCoroutine != null) StopCoroutine(parryFacingCoroutine);
                     parryFacingCoroutine = StartCoroutine(ParryFacingFailsafe(1f));
 
+                    lastParrySuccessTime = Time.unscaledTime;
                     Debug.Log($"[Parry] SUCCESS! Facing: {parryDir}");
                     return;
                 }

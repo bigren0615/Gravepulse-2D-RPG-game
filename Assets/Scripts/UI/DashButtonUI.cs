@@ -100,49 +100,7 @@ public class DashButtonUI : ActionButtonUI
     private void TriggerReadyPulse()
     {
         if (pulseCoroutine != null) StopCoroutine(pulseCoroutine);
-        pulseCoroutine = StartCoroutine(RingRippleRoutine());
-    }
-
-    /// <summary>
-    /// Expanding outline ring ripple — the ring image grows outward and fades,
-    /// leaving the button itself completely stationary (ZZZ ready-indicator style).
-    /// </summary>
-    private IEnumerator RingRippleRoutine()
-    {
-        if (readyFlashImage == null) { pulseCoroutine = null; yield break; }
-
-        RectTransform ringRT  = readyFlashImage.rectTransform;
-        Vector2       endSize = _flashStartSize * ringExpandMultiplier;
-        float         elapsed = 0f;
-
-        while (elapsed < pulseDuration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / pulseDuration);
-
-            // Ring expands steadily outward
-            ringRT.sizeDelta = Vector2.Lerp(_flashStartSize, endSize, t);
-
-            // Alpha: sharp rise (first 25%) then smooth fade (rest)
-            float alpha = t < 0.25f
-                ? Mathf.InverseLerp(0f, 0.25f, t) * 0.9f
-                : Mathf.Lerp(0.9f, 0f, Mathf.InverseLerp(0.25f, 1f, t));
-            SetFlashAlpha(alpha);
-
-            yield return null;
-        }
-
-        // Reset ring to resting state
-        ringRT.sizeDelta = _flashStartSize;
-        SetFlashAlpha(0f);
-        pulseCoroutine = null;
-    }
-
-    private void SetFlashAlpha(float a)
-    {
-        if (readyFlashImage == null) return;
-        Color c = readyFlashImage.color;
-        c.a = a;
-        readyFlashImage.color = c;
+        pulseCoroutine = StartCoroutine(RingRippleRoutine(
+            readyFlashImage, _flashStartSize, ringExpandMultiplier, pulseDuration));
     }
 }
