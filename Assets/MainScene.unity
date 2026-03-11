@@ -2911,19 +2911,19 @@ MonoBehaviour:
   iconImage: {fileID: 1010706075}
   inputHintImage: {fileID: 548661830}
   inputHintBgImage: {fileID: 1836325415}
-  hintBgPadding: {x: 8, y: 8}
+  hintBgPadding: {x: 5, y: 5}
   kbmSprite: {fileID: -557078281788634498, guid: 6d8847da75d1c794b922070b5b07c316, type: 3}
-  kbmSize: {x: 48, y: 36}
+  kbmSize: {x: 58, y: 36}
   psSprite: {fileID: 9116933214442999143, guid: 70968703ef67d2040a3c7609f7d9a25e, type: 3}
   psSize: {x: 36, y: 36}
   xboxSprite: {fileID: -1852535901072925621, guid: d4cfcae5b5270cc4a905cfc3f7d3eb8b, type: 3}
   xboxSize: {x: 36, y: 36}
-  hintBgColor: {r: 0, g: 0, b: 0, a: 0.75}
-  bgReadyColor: {r: 0.78, g: 0.78, b: 0.78, a: 1}
-  bgCooldownColor: {r: 0.45, g: 0.45, b: 0.45, a: 1}
-  iconReadyColor: {r: 1, g: 1, b: 1, a: 1}
-  iconCooldownColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
-  playerController: {fileID: 0}
+  hintBgColor: {r: 0, g: 0, b: 0, a: 1}
+  bgReadyColor: {r: 1, g: 0.9019608, b: 0.101960786, a: 1}
+  bgCooldownColor: {r: 1, g: 0.9019608, b: 0.101960786, a: 1}
+  iconReadyColor: {r: 1, g: 0.9019608, b: 0.101960786, a: 1}
+  iconCooldownColor: {r: 1, g: 0.9019608, b: 0.101960786, a: 1}
+  playerController: {fileID: 1098726795}
   parryRingImage: {fileID: 1159960350}
   ringColor: {r: 1, g: 0.9, b: 0.1, a: 1}
   ringExpandMultiplier: 1.4
