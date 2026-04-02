@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Rendering.PostProcessing;
 
 public class GameManager : MonoBehaviour
@@ -36,6 +37,105 @@ public class GameManager : MonoBehaviour
     private float hitstopOriginalSize;
     private bool _hitstopActive = false; // True while a hitstop is in progress — prevents re-capturing a zoomed camera size as the "original"
 
+    [Header("UI Settings")]
+    public GameObject pauseMenuCanvas;
+    [Tooltip("Desktop controls parent GameObject (contains keyboard/mouse UI hints). Will be disabled during pause.")]
+    public GameObject desktopControls;
+    [Tooltip("Mobile controls parent GameObject (contains on-screen buttons and joystick). Will be disabled during pause.")]
+    public GameObject mobileControls;
+    [Tooltip("Player GameObject - needed to pause player animations during pause.")]
+    public GameObject player;
+    private bool isPaused = false;
+
+    // Store the active state of controls before pausing
+    private bool desktopControlsWereActive;
+    private bool mobileControlsWereActive;
+
+
+    void Update()
+    {
+        // 监听 ESC 键
+        if (Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            TogglePause();
+        }
+    }
+
+    public void TogglePause()
+    {
+        if (pauseMenuCanvas.activeSelf)
+        {
+            DeactivatePause();
+        }
+        else
+        {
+            ActivatePause();
+        }
+    }
+
+    private void ActivatePause()
+    {
+        isPaused = true;
+        pauseMenuCanvas.SetActive(true);
+        Time.timeScale = 0f; // 冻结物理和时间
+
+        // Store the current active state before disabling
+        if (desktopControls != null)
+        {
+            desktopControlsWereActive = desktopControls.activeSelf;
+            desktopControls.SetActive(false);
+        }
+        
+        if (mobileControls != null)
+        {
+            mobileControlsWereActive = mobileControls.activeSelf;
+            mobileControls.SetActive(false);
+        }
+
+        // Pause player animations
+        if (player != null)
+        {
+            Animator playerAnimator = player.GetComponent<Animator>();
+            if (playerAnimator != null)
+                playerAnimator.speed = 0f;
+        }
+
+        // 释放鼠标，方便点击 UI
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        // 【进阶】如果你的背景音乐需要暂停，可以在这里调用你的 AudioManager
+        // AudioManager.Instance.PauseMusic(); 
+    }
+
+    public void DeactivatePause()
+    {
+        isPaused = false;
+        pauseMenuCanvas.SetActive(false);
+        Time.timeScale = 1f; // 恢复时间
+
+        // Restore only the controls that were active before pausing
+        if (desktopControls != null)
+            desktopControls.SetActive(desktopControlsWereActive);
+        
+        if (mobileControls != null)
+            mobileControls.SetActive(mobileControlsWereActive);
+
+        // Resume player animations
+        if (player != null)
+        {
+            Animator playerAnimator = player.GetComponent<Animator>();
+            if (playerAnimator != null)
+                playerAnimator.speed = 1f;
+        }
+
+        // 重新锁定鼠标到游戏中心
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        // AudioManager.Instance.ResumeMusic();
+    }
+
     /// <summary>
     /// Parry hitstop: ZZZ-style camera punch zoom.
     ///   Phase 1 (~0.04s real) — Camera snaps in fast (explosive t^0.3 zoom punch)
@@ -70,6 +170,11 @@ public class GameManager : MonoBehaviour
         float e = 0f;
         while (e < snapDur)
         {
+            while (isPaused)
+            {
+                yield return null;
+            }
+
             e += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(e / snapDur);
             // t^0.3: rushes to target instantly then barely creeps — explosive snap feel
@@ -82,7 +187,10 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0f;
         Time.fixedDeltaTime = 0f;
         yield return new WaitForSecondsRealtime(duration);
-        Time.timeScale = 1f;
+        if (!pauseMenuCanvas.activeSelf)
+        {
+            Time.timeScale = 1f;
+        }
         Time.fixedDeltaTime = 0.02f;
 
         // ── Phase 3: Ease zoom back out (~0.15s real time) ──
@@ -91,6 +199,10 @@ public class GameManager : MonoBehaviour
         e = 0f;
         while (e < easeOutDur)
         {
+            while (isPaused)
+            {
+                yield return null;
+            }
             e += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(e / easeOutDur);
             // t^2 ease-in: starts slow then accelerates — "world breathes back" feeling
@@ -135,7 +247,10 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSecondsRealtime(duration);
 
         // Restore normal time
-        Time.timeScale = 1f;
+        if (!pauseMenuCanvas.activeSelf)
+        {
+            Time.timeScale = 1f;
+        }
         Time.fixedDeltaTime = 0.02f;
 
         // Restore music pitch
@@ -247,10 +362,10 @@ public class GameManager : MonoBehaviour
         if (vitalViewFlash == null || vitalViewScanLines == null || vvPPVolume == null)
             yield break;
 
-        const float flashSnapTime  = 0.06f;
+        const float flashSnapTime = 0.06f;
         const float flashPeakAlpha = 0.50f;
-        const float caPeak         = 0.80f;
-        const float scanAlpha      = 0.18f;
+        const float caPeak = 0.80f;
+        const float scanAlpha = 0.18f;
 
         // Tile scan-lines to screen resolution (4 px per period)
         vitalViewScanLines.uvRect = new Rect(0f, 0f, 1f, Screen.height / 4f);
@@ -261,15 +376,15 @@ public class GameManager : MonoBehaviour
         {
             e += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(e / flashSnapTime);
-            vitalViewFlash.color      = new Color(1f, 0.72f, 0.2f, Mathf.Lerp(0f, flashPeakAlpha, t));
-            vitalViewScanLines.color  = new Color(0f, 0f, 0f,       Mathf.Lerp(0f, scanAlpha, t));
-            vvPPVolume.weight         = Mathf.Lerp(0f, 1f, t);
+            vitalViewFlash.color = new Color(1f, 0.72f, 0.2f, Mathf.Lerp(0f, flashPeakAlpha, t));
+            vitalViewScanLines.color = new Color(0f, 0f, 0f, Mathf.Lerp(0f, scanAlpha, t));
+            vvPPVolume.weight = Mathf.Lerp(0f, 1f, t);
             vvCA.intensity.Override(Mathf.Lerp(0f, caPeak, t));
             yield return null;
         }
-        vitalViewFlash.color     = new Color(1f, 0.72f, 0.2f, flashPeakAlpha);
+        vitalViewFlash.color = new Color(1f, 0.72f, 0.2f, flashPeakAlpha);
         vitalViewScanLines.color = new Color(0f, 0f, 0f, scanAlpha);
-        vvPPVolume.weight        = 1f;
+        vvPPVolume.weight = 1f;
         vvCA.intensity.Override(caPeak);
 
         // ── Phase 2: Flash & CA fade ──
@@ -279,7 +394,7 @@ public class GameManager : MonoBehaviour
         {
             e += Time.unscaledDeltaTime;
             float tFlash = Mathf.Clamp01(e / (phase2 * 0.5f));  // flash gone at 50% of phase 2
-            float tCA    = Mathf.Clamp01(e / phase2);           // CA gone at end of phase 2
+            float tCA = Mathf.Clamp01(e / phase2);           // CA gone at end of phase 2
             vitalViewFlash.color = new Color(1f, 0.72f, 0.2f, Mathf.Lerp(flashPeakAlpha, 0f, tFlash));
             vvCA.intensity.Override(Mathf.Lerp(caPeak, 0f, tCA));
             yield return null;
@@ -288,26 +403,35 @@ public class GameManager : MonoBehaviour
         vvCA.intensity.Override(0f);
 
         // ── Phase 3: Hold (desaturation + vignette + scan-lines) ──
-        yield return new WaitForSecondsRealtime(duration * 0.40f);
+        float phase3 = duration * 0.40f;
+        float e3 = 0f;
+        while (e3 < phase3)
+        {
+            while (isPaused) yield return null;
+            e3 += Time.unscaledDeltaTime;
+            yield return null;
+        }
 
         // ── Phase 4: Fade everything out ──
         float phase4 = duration * 0.30f;
         e = 0f;
         while (e < phase4)
         {
+            while (isPaused) yield return null;
+
             e += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(e / phase4);
-            vvPPVolume.weight        = Mathf.Lerp(1f, 0f, t);
+            vvPPVolume.weight = Mathf.Lerp(1f, 0f, t);
             vitalViewScanLines.color = new Color(0f, 0f, 0f, Mathf.Lerp(scanAlpha, 0f, t));
             yield return null;
         }
 
         // Ensure everything is cleanly reset
-        vvPPVolume.weight        = 0f;
+        vvPPVolume.weight = 0f;
         vitalViewScanLines.color = new Color(0f, 0f, 0f, 0f);
-        vitalViewFlash.color     = new Color(1f, 0.72f, 0.2f, 0f);
+        vitalViewFlash.color = new Color(1f, 0.72f, 0.2f, 0f);
         vvCA.intensity.Override(0f);
-        vvOverlayCoroutine       = null;
+        vvOverlayCoroutine = null;
     }
 
     private void Awake()
@@ -340,7 +464,7 @@ public class GameManager : MonoBehaviour
     public void EnterCombat(GameObject enemy)
     {
         if (enemy == null) return;
-        
+
         bool wasEmpty = enemiesInCombat.Count == 0;
         enemiesInCombat.Add(enemy);
 
@@ -357,7 +481,7 @@ public class GameManager : MonoBehaviour
     public void ExitCombat(GameObject enemy)
     {
         if (enemy == null) return;
-        
+
         enemiesInCombat.Remove(enemy);
 
         // Return to ambient music if no enemies left in combat
