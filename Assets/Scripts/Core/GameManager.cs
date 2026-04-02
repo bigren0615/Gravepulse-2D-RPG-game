@@ -39,7 +39,15 @@ public class GameManager : MonoBehaviour
 
     [Header("UI Settings")]
     public GameObject pauseMenuCanvas;
+    [Tooltip("Desktop controls parent GameObject (contains keyboard/mouse UI hints). Will be disabled during pause.")]
+    public GameObject desktopControls;
+    [Tooltip("Mobile controls parent GameObject (contains on-screen buttons and joystick). Will be disabled during pause.")]
+    public GameObject mobileControls;
     private bool isPaused = false;
+
+    // Store the active state of controls before pausing
+    private bool desktopControlsWereActive;
+    private bool mobileControlsWereActive;
 
 
     void Update()
@@ -69,6 +77,19 @@ public class GameManager : MonoBehaviour
         pauseMenuCanvas.SetActive(true);
         Time.timeScale = 0f; // 冻结物理和时间
 
+        // Store the current active state before disabling
+        if (desktopControls != null)
+        {
+            desktopControlsWereActive = desktopControls.activeSelf;
+            desktopControls.SetActive(false);
+        }
+        
+        if (mobileControls != null)
+        {
+            mobileControlsWereActive = mobileControls.activeSelf;
+            mobileControls.SetActive(false);
+        }
+
         // 释放鼠标，方便点击 UI
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -82,6 +103,13 @@ public class GameManager : MonoBehaviour
         isPaused = false;
         pauseMenuCanvas.SetActive(false);
         Time.timeScale = 1f; // 恢复时间
+
+        // Restore only the controls that were active before pausing
+        if (desktopControls != null)
+            desktopControls.SetActive(desktopControlsWereActive);
+        
+        if (mobileControls != null)
+            mobileControls.SetActive(mobileControlsWereActive);
 
         // 重新锁定鼠标到游戏中心
         Cursor.lockState = CursorLockMode.Locked;
