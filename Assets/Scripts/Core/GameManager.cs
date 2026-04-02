@@ -43,6 +43,8 @@ public class GameManager : MonoBehaviour
     public GameObject desktopControls;
     [Tooltip("Mobile controls parent GameObject (contains on-screen buttons and joystick). Will be disabled during pause.")]
     public GameObject mobileControls;
+    [Tooltip("Player GameObject - needed to pause player animations during pause.")]
+    public GameObject player;
     private bool isPaused = false;
 
     // Store the active state of controls before pausing
@@ -90,6 +92,14 @@ public class GameManager : MonoBehaviour
             mobileControls.SetActive(false);
         }
 
+        // Pause player animations
+        if (player != null)
+        {
+            Animator playerAnimator = player.GetComponent<Animator>();
+            if (playerAnimator != null)
+                playerAnimator.speed = 0f;
+        }
+
         // 释放鼠标，方便点击 UI
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -110,6 +120,14 @@ public class GameManager : MonoBehaviour
         
         if (mobileControls != null)
             mobileControls.SetActive(mobileControlsWereActive);
+
+        // Resume player animations
+        if (player != null)
+        {
+            Animator playerAnimator = player.GetComponent<Animator>();
+            if (playerAnimator != null)
+                playerAnimator.speed = 1f;
+        }
 
         // 重新锁定鼠标到游戏中心
         Cursor.lockState = CursorLockMode.Locked;

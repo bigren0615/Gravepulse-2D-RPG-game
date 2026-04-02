@@ -1742,6 +1742,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hitstopZoomFactor: 0.82
   pauseMenuCanvas: {fileID: 1655455232}
+  desktopControls: {fileID: 3100001}
+  mobileControls: {fileID: 1531414257}
+  player: {fileID: 1098726794}
 --- !u!4 &238343886
 Transform:
   m_ObjectHideFlags: 0
