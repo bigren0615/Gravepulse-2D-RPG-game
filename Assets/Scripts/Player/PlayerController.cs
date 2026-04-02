@@ -111,6 +111,7 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (Time.timeScale == 0) return; 
         // Dash input — use unscaled time so cooldown works correctly during Vital View bullet time
         if (!isDashing && Time.unscaledTime >= lastDashTime + dashCooldown)
         {

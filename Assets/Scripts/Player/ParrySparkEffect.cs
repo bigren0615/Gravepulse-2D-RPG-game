@@ -132,7 +132,7 @@ public class ParrySparkEffect : MonoBehaviour
         var main = ps.main;
         main.duration           = 0.35f;
         main.loop               = false;
-        main.useUnscaledTime    = true;   // plays during hitstop (timeScale=0)
+        main.useUnscaledTime    = false;   // plays during hitstop (timeScale=0)
         main.startLifetime      = new ParticleSystem.MinMaxCurve(0.15f, 0.4f);
         main.startSpeed         = new ParticleSystem.MinMaxCurve(4f, 10f);
         main.startSize          = new ParticleSystem.MinMaxCurve(0.08f, 0.18f);  // bigger — easier to see
@@ -206,7 +206,7 @@ public class ParrySparkEffect : MonoBehaviour
         var main = ps.main;
         main.duration           = 0.2f;
         main.loop               = false;
-        main.useUnscaledTime    = true;
+        main.useUnscaledTime    = false;
         main.startLifetime      = new ParticleSystem.MinMaxCurve(0.25f);
         main.startSpeed         = new ParticleSystem.MinMaxCurve(0f);
         main.startSize          = new ParticleSystem.MinMaxCurve(0.4f);
@@ -267,7 +267,7 @@ public class ParrySparkEffect : MonoBehaviour
         var main = ps.main;
         main.duration           = 0.45f;
         main.loop               = false;
-        main.useUnscaledTime    = true;
+        main.useUnscaledTime    = false;
         main.startLifetime      = new ParticleSystem.MinMaxCurve(0.25f, 0.5f);
         main.startSpeed         = new ParticleSystem.MinMaxCurve(0.5f, 3f);
         main.startSize          = new ParticleSystem.MinMaxCurve(0.2f, 0.55f);  // bigger
