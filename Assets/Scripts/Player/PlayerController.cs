@@ -95,6 +95,8 @@ public class PlayerController : MonoBehaviour
         col = GetComponent<Collider2D>();
         controls = new PlayerControls();
 
+        DontDestroyOnLoad(gameObject);
+
         // Auto-resolve solid layer by name if not set in Inspector
         if (solidLayer.value == 0)
             solidLayer = LayerMask.GetMask("Solid");
