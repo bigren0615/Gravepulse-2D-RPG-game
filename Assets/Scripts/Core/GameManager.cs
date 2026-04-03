@@ -85,7 +85,7 @@ public class GameManager : MonoBehaviour
             desktopControlsWereActive = desktopControls.activeSelf;
             desktopControls.SetActive(false);
         }
-        
+
         if (mobileControls != null)
         {
             mobileControlsWereActive = mobileControls.activeSelf;
@@ -117,7 +117,7 @@ public class GameManager : MonoBehaviour
         // Restore only the controls that were active before pausing
         if (desktopControls != null)
             desktopControls.SetActive(desktopControlsWereActive);
-        
+
         if (mobileControls != null)
             mobileControls.SetActive(mobileControlsWereActive);
 
@@ -134,6 +134,15 @@ public class GameManager : MonoBehaviour
         Cursor.visible = false;
 
         // AudioManager.Instance.ResumeMusic();
+    }
+
+    public void QuitGame()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
     }
 
     /// <summary>
