@@ -5565,6 +5565,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 2241615893591608238, guid: bc3d0c83aa8e3f8469e10a85aebd2965, type: 3}
+      propertyPath: targetFacing.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2241615893591608238, guid: bc3d0c83aa8e3f8469e10a85aebd2965, type: 3}
       propertyPath: spawnPosition.x
       value: -8.5
       objectReference: {fileID: 0}

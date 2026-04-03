@@ -23,6 +23,7 @@ public class PlayerController : MonoBehaviour
     private bool isDashing = false;
     private float lastDashTime = -Mathf.Infinity;
     private Vector2 lastMoveDir = Vector2.down;
+    private bool controlsLocked = false; // Prevents input during scene transitions
 
     // ---- Dash cooldown accessors for UI ----
     /// <summary>0 = cooldown just started, 1 = fully ready (use this for UI fill)</summary>
@@ -113,7 +114,7 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        if (Time.timeScale == 0) return; 
+        if (Time.timeScale == 0 || controlsLocked) return; // Block input if controls locked
         // Dash input — use unscaled time so cooldown works correctly during Vital View bullet time
         if (!isDashing && Time.unscaledTime >= lastDashTime + dashCooldown)
         {
@@ -172,6 +173,7 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (controlsLocked) return; // Block movement if controls locked
         if (!isDashing) Move(); // Move first
         HandleFootsteps();       // Footsteps after movement
         DepenetrateFromSolids(); // Continuously push out of any wall overlap (catches dash tunnelling)
@@ -179,6 +181,24 @@ public class PlayerController : MonoBehaviour
     private void OnEnable()
     {
         controls.Enable();
+        // Safety: unlock controls when player object is enabled (scene load)
+        // This prevents permanent lock if transition system fails
+        if (controlsLocked)
+        {
+            // Add small delay to allow transition system to complete properly
+            StartCoroutine(SafetyUnlockDelay());
+        }
+    }
+
+    private IEnumerator SafetyUnlockDelay()
+    {
+        // Wait 1 second - if still locked, something went wrong
+        yield return new WaitForSecondsRealtime(1f);
+        if (controlsLocked)
+        {
+            Debug.LogWarning("PlayerController: Controls were stuck locked! Auto-unlocking...");
+            controlsLocked = false;
+        }
     }
 
     private void OnDisable()
@@ -797,5 +817,43 @@ public class PlayerController : MonoBehaviour
         for (int i = 0; i < 32; i++)
             if ((maskValue & (1 << i)) != 0)
                 Physics2D.IgnoreLayerCollision(playerLayer, i, ignore);
+    }
+
+    /// <summary>
+    /// Sets the player's facing direction. Used by portals after teleportation.
+    /// Updates internal state (lastMoveDir), animator parameters, and sprite flip.
+    /// </summary>
+    public void SetFacingDirection(Vector2 direction)
+    {
+        if (direction == Vector2.zero) return;
+
+        // Update internal facing state
+        lastMoveDir = direction.normalized;
+
+        // Update animator parameters
+        animator.SetFloat("moveX", Mathf.Abs(lastMoveDir.x));
+        animator.SetFloat("moveY", lastMoveDir.y);
+        animator.Update(0f); // Force immediate update
+
+        // Update sprite flip (base sprite faces LEFT)
+        if (lastMoveDir.x > 0)
+            spriteRenderer.flipX = true;
+        else if (lastMoveDir.x < 0)
+            spriteRenderer.flipX = false;
+    }
+
+    /// <summary>
+    /// Lock/unlock player controls. Used during scene transitions to prevent input override.
+    /// </summary>
+    public void LockControls(bool locked)
+    {
+        controlsLocked = locked;
+        
+        // Clear movement input when locking to prevent residual movement
+        if (locked)
+        {
+            movementInput = Vector2.zero;
+            animator.SetBool("isMoving", false);
+        }
     }
 }
