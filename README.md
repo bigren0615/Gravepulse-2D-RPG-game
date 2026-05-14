@@ -7,7 +7,7 @@
 ![Unity](https://img.shields.io/badge/Unity-6-grey?logo=unity&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?logo=c-sharp&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-In%20Development-orange)
-![Progress](https://img.shields.io/badge/Overall%20Progress-90%25-blue)
+![Progress](https://img.shields.io/badge/Overall%20Progress-92%25-blue)
 ![Platforms](https://img.shields.io/badge/Platforms-PC%20%7C%20Mobile-brightgreen)
 
 > **Goal:** Real-time physics-driven top-down action RPG with fluid combat, dodge mechanics, and responsive input.
@@ -106,7 +106,7 @@
 ## 📊 Overall Progress
 
 ```
-Total Completion  ██████████████████░░  90%
+Total Completion  ██████████████████░░  92%
 ```
 
 ---
@@ -116,6 +116,16 @@ Total Completion  ██████████████████░░  
 ## 📋 Update Released Log
 
 <details open>
+<summary>🆕 v0.4.1-Alpha — Progress & Docs Sync Update - 14 May 2026</summary>
+
+- Updated project version tracking to `0.4.1-alpha` (`ProjectSettings/ProjectSettings.asset`)
+- Updated README progress tracking to reflect current alpha milestone
+- Synced release log documentation for v0.4.1-alpha
+- Updated WebGL docs build metadata (`docs/index.html`) to show `productVersion: "0.4.1-alpha"`
+
+</details>
+
+<details>
 <summary>🆕 v0.3.1-Alpha — Enhance Joystick & UI - 11 March 2026</summary>
 
 - Redesigned on-screen joystick with custom sprites (`joystick_circle_pad_a.png` pad + `joystick_circle_nub_c.png` nub) for a polished mobile feel
