@@ -10,6 +10,7 @@ using UnityEngine.SceneManagement;
 public class SceneTransitionManager : MonoBehaviour
 {
     private static SceneTransitionManager instance;
+    public static bool IsTransitioning => instance != null && instance.isTransitioning;
     public static SceneTransitionManager Instance
     {
         get
@@ -79,8 +80,16 @@ public class SceneTransitionManager : MonoBehaviour
     /// </summary>
     public void TransitionToScene(string targetScene, Vector2 spawnPos, Vector2 targetFacing, float fadeDuration = 0.3f)
     {
-        if (!isTransitioning)
-            StartCoroutine(TransitionCoroutine(targetScene, spawnPos, targetFacing, fadeDuration));
+        if (isTransitioning)
+            return;
+
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == targetScene)
+        {
+            Debug.LogWarning($"SceneTransitionManager: Ignoring transition to the already-active scene '{targetScene}'.");
+            return;
+        }
+
+        StartCoroutine(TransitionCoroutine(targetScene, spawnPos, targetFacing, fadeDuration));
     }
 
     private IEnumerator TransitionCoroutine(string targetScene, Vector2 spawnPos, Vector2 targetFacing, float fadeDuration)

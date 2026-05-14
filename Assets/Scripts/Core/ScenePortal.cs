@@ -8,18 +8,23 @@ public class ScenePortal : MonoBehaviour
     [Tooltip("Fade duration in seconds. Typical: 0.2-0.5s")]
     [SerializeField] private float fadeDuration = 0.3f;
 
+    private bool hasTriggered = false;
+
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-        {
-            // Use transition manager for smooth fade + input locking
-            SceneTransitionManager.Instance.TransitionToScene(
-                targetSceneName, 
-                spawnPosition, 
-                targetFacing,
-                fadeDuration
-            );
-        }
+        if (!other.CompareTag("Player")) return;
+        if (hasTriggered) return;
+        if (SceneTransitionManager.IsTransitioning) return;
+
+        hasTriggered = true;
+
+        // Use transition manager for smooth fade + input locking
+        SceneTransitionManager.Instance.TransitionToScene(
+            targetSceneName,
+            spawnPosition,
+            targetFacing,
+            fadeDuration
+        );
     }
 }
 
