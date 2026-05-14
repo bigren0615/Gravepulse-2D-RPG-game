@@ -94,6 +94,9 @@ public class SceneTransitionManager : MonoBehaviour
         if (pc != null)
             pc.LockControls(true);
 
+        // Play a small 'move' SFX when beginning the transition
+        AudioManager.Instance?.PlaySFX(SFXType.Move);
+
         // 2. Fade to black
         yield return StartCoroutine(Fade(1f, fadeDuration));
 

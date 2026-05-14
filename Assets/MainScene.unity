@@ -5050,6 +5050,13 @@ MonoBehaviour:
     pitchMax: 1.05
     loop: 0
     source: {fileID: 0}
+  - name: Move
+    clip: {fileID: 8300000, guid: d7fc399bb6556824ca7d504c418c6010, type: 3}
+    volume: 0.6
+    pitchMin: 0.95
+    pitchMax: 1.05
+    loop: 0
+    source: {fileID: 0}
   music:
   - name: AmbientBGM
     clip: {fileID: 8300000, guid: 5e5b3ffed146e664ca3995e8dec98f0f, type: 3}
