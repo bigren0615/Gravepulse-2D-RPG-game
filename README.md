@@ -126,7 +126,7 @@ Total Completion  ██████████████████░░  
 </details>
 
 <details>
-<summary>🆕 v0.3.1-Alpha — Enhance Joystick & UI - 11 March 2026</summary>
+<summary>v0.3.1-Alpha — Enhance Joystick & UI - 11 March 2026</summary>
 
 - Redesigned on-screen joystick with custom sprites (`joystick_circle_pad_a.png` pad + `joystick_circle_nub_c.png` nub) for a polished mobile feel
 - Added `ActionButtonUI.cs` — base class for all mobile action buttons; handles input-scheme detection (Keyboard/Mouse, Xbox, PlayStation) and automatic hint-icon switching
